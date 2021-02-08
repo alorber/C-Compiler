@@ -36,10 +36,8 @@ void append_escape(char* text, int base) {
 	} else if(base == 16) {
 		int hex = (int)strtol(text+2, NULL, 16);
 		string_buffer[buf_pos++] = 255 < hex ? 255 : hex;
-	} else {
-		// Should never have incorrect input, but checks anyways
-		// PRINT ERROR
 	}
+	// Should never have incorrect input
 }
 
 // Completes String
@@ -66,7 +64,9 @@ char* complete_string(int is_char) {
 
 // Prints String
 void print_string(char *string) {
+	// Prints until reaches end of buffer or reaches null before zero'ed out buffer
 	for(int i = 0; i < STRING_SIZE && (string[i] != '\0' || string[i+1] != 0); i++) {
+		// Only prints printable characters
 		if(isprint(string[i])) {
 			printf("%c", string[i]);
 		} else {
@@ -80,6 +80,7 @@ void print_error(char *filename, int line_num, char* text, char* message) {
 	fprintf(stderr, "%s: line %d: %s - %s\n", filename, line_num, text, message);
 }
 
+// Prints string representation of keyword
 void print_keyword(int keyword) {
 	// List of keywords as strings
 	char* keyword_strings[] = {"IDENT", "CHARLIT", "STRING", "NUMBER", "INDSEL", 

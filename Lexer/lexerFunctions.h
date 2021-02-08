@@ -29,6 +29,7 @@ void print_string(char *string);
 // Prints error messages
 void print_error(char *filename, int line_num, char* text, char* message);
 
+// Prints string representation of keyword
 void print_keyword(int keyword);
 
 #endif // LEXERFUNCTIONS_H

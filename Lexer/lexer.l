@@ -190,10 +190,10 @@ _Imaginary      {return _IMAGINARY;}
 <CHARLIT,STRING>\\[abfrntv0\'\"\\]      {append_escape(yytext,0);}
 
  /* Octal */
-<CHARLIT,STRING>\\[0-7]{1,3}           {append_escape(yytext,8);}
+<CHARLIT,STRING>\\[0-7]{1,3}            {append_escape(yytext,8);}
 
  /* Hex */
-<CHARLIT,STRING>\\x[a-fA-F0-9]+        {append_escape(yytext,16);}
+<CHARLIT,STRING>\\x[a-fA-F0-9]+         {append_escape(yytext,16);}
 
  /* ERRORS */
 <CHARLIT,STRING>\n      {print_error(filename,line_number,yytext,"Unterminated string/char.");
