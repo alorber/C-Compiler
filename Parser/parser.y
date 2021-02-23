@@ -27,8 +27,24 @@
 
 
 /* Operator Precedence & Associativity */
-
-
+/* From cpp website */
+%left ','
+%right '=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
+%right '?' ":"
+%left LOGOR
+%left LOGAND
+%left '|'
+%left '^'
+%left '&'
+%left EQEQ NOTEQ
+%left '<' '>' LTEQ GTEQ
+%left SHL SHR
+%left '+' '-'
+%left '*' '/' '%'
+%right PLUSPLUS MINUSMINUS /* prefix */ '!' '~' /* +a, -a, &a, a* */
+%left '(' ')' '[' ']' /* .a, ->a */
+%left IF
+%left ELSE
 
 %%
 /* ------- */
