@@ -33,7 +33,7 @@
 %token UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 
 /* Types (in order of grammar) */
-%type<node> primary_expr postfix_expr expr_list unary_expr
+%type<node> primary_expr postfix_expr function_call expr_list unary_expr
 %type<op> unary_op
 %type<node> cast_expr multiplicative_expr additive_expr shift_expr
 %type<node> relational_expr equality_expr bitwise_and_expr bitwise_xor_expr
@@ -76,19 +76,19 @@ primary_expr: IDENT           {$$ = create_ident_node($1);}
 
 postfix_expr: primary_expr                  {$$ = $1;}
             | postfix_expr '[' expr ']'     {}
-            | function_call                 {}
+            | function_call                 {$$ = $1;}
             | postfix_expr '.' IDENT        {}
             | postfix_expr INDSEL IDENT     {}
             | postfix_expr PLUSPLUS         {}
             | postfix_expr MINUSMINUS       {}
             ;
 
-function_call: postfix_expr '(' expr_list ')'   {}
-             | postfix_expr '(' ')'             {}
+function_call: postfix_expr '(' expr_list ')'   {$$ = create_fnc_call_node($1, $3);}
+             | postfix_expr '(' ')'             {$$ = create_fnc_call_node($1, NULL);}
              ;
 
-expr_list: assignment_expr                  {$$ = $1;}
-         | expr_list ',' assignment_expr    {}
+expr_list: assignment_expr                  {$$ = init_expr_list($1);}
+         | expr_list ',' assignment_expr    {$$ = add_argument_to_list($1, $3);}
          ;
 
 unary_expr: postfix_expr            {$$ = $1;}
@@ -157,7 +157,7 @@ logical_or_expr: logical_and_expr                            {$$ = $1;}
                | logical_or_expr LOGOR logical_and_expr      {$$ = create_binary_node($2,$1,$3);}
                ;
 
-conditional_expr: logical_or_expr                               {$$ = $1;}
+conditional_expr: logical_or_expr                                 {$$ = $1;}
                 | logical_or_expr '?' expr ':' conditional_expr   {$$ = create_ternary_node($1,$3,$5);}
                 ;
 

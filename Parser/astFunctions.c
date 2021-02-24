@@ -83,3 +83,60 @@ astnode* create_char_node(char charlit) {
     return char_node;
 }
 
+astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list) {
+    astnode *fnc_call_node = allocate_node_mem();
+    fnc_call_node->node_type = FUNCTION_TYPE;
+    fnc_call_node->ast_fnc_call.function_name = function_name;
+    fnc_call_node->ast_fnc_call.expr_list_head = expr_list;
+    
+    // Calculates number of arguments
+    if(expr_list == NULL) {
+        fnc_call_node->ast_fnc_call.num_arguments = 0;
+    } else {
+        int num_arguments = 1; 
+
+        astnode_argument *curr_argument = expr_list->ast_expr_list_head.next;
+        while(curr_argument != NULL) {
+            num_arguments++;
+            curr_argument = curr_argument->next;
+        }
+        fnc_call_node->ast_fnc_call.num_arguments = num_arguments;
+    }
+    
+    return fnc_call_node;
+}
+
+astnode* init_expr_list(astnode* expr_list_head) {
+    astnode *expr_list_node = allocate_node_mem();
+    expr_list_node->node_type = EXPR_LIST_TYPE;
+    expr_list_node->ast_expr_list_head.expr = expr_list_head;
+    expr_list_node->ast_expr_list_head.next = NULL;
+
+    return expr_list_node;
+}
+
+astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument) {
+    // Creates new argument node
+    astnode_argument *arg_node;
+    
+    // Checks for error
+    if((arg_node = malloc(sizeof(astnode_argument))) == NULL) {
+        fprintf(stderr, "ERROR: Unable to allocate memory for AST Argument node.\n");
+        exit(-1);
+    }
+
+    arg_node->expr = new_argument;
+    arg_node->next = NULL;
+
+    // Get last argument in list
+    astnode_argument *curr_argument = &(expr_list->ast_expr_list_head);
+    while(curr_argument->next != NULL) {
+        curr_argument = curr_argument->next;
+    }
+    
+    // Add new argument to list
+    curr_argument->next = arg_node;
+
+    // Returns head of list
+    return expr_list;
+}

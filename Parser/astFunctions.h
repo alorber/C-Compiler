@@ -15,7 +15,9 @@ enum nodetype {
     NUMBER_TYPE,
     IDENT_TYPE,
     STRING_TYPE,
-    CHARLIT_TYPE
+    CHARLIT_TYPE,
+    FUNCTION_TYPE,
+    EXPR_LIST_TYPE
 };
 
 // AST Nodes
@@ -32,6 +34,8 @@ typedef struct astnode {
         astnode_ident ast_ident;
         astnode_string ast_string;
         astnode_char ast_charlit;
+        astnode_function_call ast_fnc_call;
+        astnode_argument ast_expr_list_head;
     };
 } astnode;
 
@@ -65,6 +69,18 @@ typedef struct astnode_char {
     char charlit;
 } astnode_char;
 
+typedef struct astnode_function_call {
+    astnode *function_name;
+    int num_arguments;
+    astnode *expr_list_head; // List of arguments
+} astnode_function_call;
+
+typedef struct astnode_argument {
+    astnode *expr;
+    astnode_argument *next;
+} astnode_argument;
+
+
 // AST Functions
 // -------------
 
@@ -76,5 +92,8 @@ astnode* create_number_node(num_type number);
 astnode* create_ident_node(char *ident); 
 astnode* create_string_node(char *string); 
 astnode* create_char_node(char charlit);
+astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list);
+astnode* init_expr_list(astnode* expr_list_head);
+astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument);
 
 #endif // ASTFUNCTIONS_H
