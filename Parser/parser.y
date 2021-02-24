@@ -15,37 +15,50 @@
     char c;
     char *string;
     char *ident;
+    int op;
+    astnode *node;
 }
 
 /* Tokens */
-%token IDENT CHARLIT STRING NUMBER INDSEL PLUSPLUS MINUSMINUS SHL SHR
-%token LTEQ GTEQ EQEQ NOTEQ LOGAND LOGOR ELLIPSIS TIMESEQ DIVEQ MODEQ
-%token PLUSEQ MINUSEQ SHLEQ SHREQ ANDEQ OREQ XOREQ AUTO BREAK CASE
-%token CHAR CONST CONTINUE DEFAULT DO DOUBLE ELSE ENUM EXTERN FLOAT
-%token FOR GOTO IF INLINE INT LONG REGISTER RESTRICT RETURN SHORT
-%token SIGNED SIZEOF STATIC STRUCT SWITCH TYPEDEF UNION UNSIGNED
-%token VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
+%token<ident> IDENT 
+%token<c> CHARLIT 
+%token<string> STRING 
+%token<number> NUMBER 
+%token<op> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ
+%token<op> LOGAND LOGOR TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ
+%token<op> ANDEQ OREQ XOREQ SIZEOF
+%token ELLIPSIS AUTO BREAK CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE 
+%token ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE INT LONG REGISTER 
+%token RESTRICT RETURN SHORT SIGNED STATIC STRUCT SWITCH TYPEDEF UNION 
+%token UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 
-/* Types */
-
+/* Types (in order of grammar) */
+%type<node> primary_expr postfix_expr expr_list unary_expr
+%type<op> unary_op
+%type<node> cast_expr multiplicative_expr additive_expr shift_expr
+%type<node> relational_expr equality_expr bitwise_and_expr bitwise_xor_expr
+%type<node> bitwise_or_expr logical_and_expr logical_or_expr conditional_expr
+%type<node> assignment_expr expr
+%type<op> assignment_op
+%type<op> '=' '<' '>' '!' '~' '(' ')' '[' ']'
 
 /* Operator Precedence & Associativity */
 /* From cpp website */
-%left ','
+%left <op> ','
 %right '=' PLUSEQ MINUSEQ TIMESEQ DIVEQ MODEQ SHLEQ SHREQ ANDEQ XOREQ OREQ
-%right '?' ":"
+%right <op> '?' ":"
 %left LOGOR
 %left LOGAND
-%left '|'
-%left '^'
-%left '&'
+%left <op> '|'
+%left <op> '^'
+%left <op> '&'
 %left EQEQ NOTEQ
 %left '<' '>' LTEQ GTEQ
 %left SHL SHR
-%left '+' '-'
-%left '*' '/' '%'
-%right PLUSPLUS MINUSMINUS /* prefix */ '!' '~' /* +a, -a, &a, a* */
-%left '(' ')' '[' ']' /* .a, ->a */
+%left <op> '+' '-'
+%left <op> '*' '/' '%'
+%right PLUSPLUS MINUSMINUS /* prefix */ SIZEOF '!' '~' /* +a, -a, &a, a* */
+%left INDSEL '(' ')' '[' ']' /* .a, ->a */
 %left IF
 %left ELSE
 
@@ -145,7 +158,7 @@ logical_or_expr: logical_and_expr                            {$$ = $1;}
                ;
 
 conditional_expr: logical_or_expr                               {$$ = $1;}
-                | logical_or_expr '?' expr : conditional_expr   {$$ = create_ternary_node($1,$3,$5);}
+                | logical_or_expr '?' expr ':' conditional_expr   {$$ = create_ternary_node($1,$3,$5);}
                 ;
 
 assignment_expr: conditional_expr                           {$$ = $1;}
