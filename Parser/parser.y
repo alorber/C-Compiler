@@ -7,6 +7,7 @@
 
 %{
 #include "parser.h"
+#include "astFunctions.h"
 %}
 
 %union {
@@ -53,11 +54,11 @@
 /*  RULES  */
 /* ------- */
 
-primary_expr: IDENT           {}
-            | CHARLIT         {}
-            | NUMBER          {}
-            | STRING          {}
-            | '(' expr ')'    {}
+primary_expr: IDENT           {$$ = create_ident_node($1);}
+            | CHARLIT         {$$ = create_char_node($1);}
+            | NUMBER          {$$ = create_number_node($1);}
+            | STRING          {$$ = create_string_node($1);}
+            | '(' expr ')'    {$$ = $2;}
             ;
 
 postfix_expr: primary_expr                  {$$ = $1;}
@@ -80,8 +81,8 @@ expr_list: assignment_expr                  {$$ = $1;}
 unary_expr: postfix_expr            {$$ = $1;}
           | PLUSPLUS unary_expr     {}
           | MINUSMINUS unary_expr   {}
-          | unary_op cast_expr      {}
-          | SIZEOF unary_expr       {}
+          | unary_op cast_expr      {$$ = create_unary_node($1,$2);}
+          | SIZEOF unary_expr       {$$ = create_unary_node($1,$2);}
           ;
 
 unary_op: '&'   {$$ = $1;}
@@ -95,60 +96,60 @@ unary_op: '&'   {$$ = $1;}
 cast_expr: unary_expr   {$$ = $1;}
          ;
 
-multiplicative_expr: cast_expr                          {$$ = $1;}
-                   | multiplicative_expr '*' cast_expr  {}
-                   | multiplicative_expr / cast_expr    {}
-                   | multiplicative_expr % cast_expr    {}
+multiplicative_expr: cast_expr                           {$$ = $1;}
+                   | multiplicative_expr '*' cast_expr   {$$ = create_binary_node($2,$1,$3);}
+                   | multiplicative_expr '/' cast_expr   {$$ = create_binary_node($2,$1,$3);}
+                   | multiplicative_expr '%' cast_expr   {$$ = create_binary_node($2,$1,$3);}
                    ;
 
 additive_expr: multiplicative_expr                      {$$ = $1;}
-             | additive_expr '+' multiplicative_expr    {}
-             | additive_expr - multiplicative_expr      {}
+             | additive_expr '+' multiplicative_expr    {$$ = create_binary_node($2,$1,$3);}
+             | additive_expr '-' multiplicative_expr    {$$ = create_binary_node($2,$1,$3);}
              ;
 
 shift_expr: additive_expr                   {$$ = $1;}
-          | shift_expr SHL additive_expr    {}
-          | shift_expr SHR additive_expr    {}
+          | shift_expr SHL additive_expr    {$$ = create_binary_node($2,$1,$3);}
+          | shift_expr SHR additive_expr    {$$ = create_binary_node($2,$1,$3);}
           ;
 
 relational_expr: shift_expr                         {$$ = $1;}
-               | relational_expr '<' shift_expr     {}
-               | relational_expr '>' shift_expr     {}
-               | relational_expr LTEQ shift_expr    {}
-               | relational_expr GTEQ shift_expr    {}
+               | relational_expr '<' shift_expr     {$$ = create_binary_node($2,$1,$3);}
+               | relational_expr '>' shift_expr     {$$ = create_binary_node($2,$1,$3);}
+               | relational_expr LTEQ shift_expr    {$$ = create_binary_node($2,$1,$3);}
+               | relational_expr GTEQ shift_expr    {$$ = create_binary_node($2,$1,$3);}
                ;
 
 equality_expr: relational_expr                          {$$ = $1;}
-             | equality_expr EQEQ relational_expr       {}
-             | equality_expr NOTEQ relational_expr      {}
+             | equality_expr EQEQ relational_expr       {$$ = create_binary_node($2,$1,$3);}
+             | equality_expr NOTEQ relational_expr      {$$ = create_binary_node($2,$1,$3);}
              ;
 
 bitwise_and_expr: equality_expr                         {$$ = $1;}
-                | bitwise_and_expr '&' equality_expr    {}
+                | bitwise_and_expr '&' equality_expr    {$$ = create_binary_node($2,$1,$3);}
                 ;
 
 bitwise_xor_expr: bitwise_and_expr                          {$$ = $1;}
-                | bitwise_xor_expr '^' bitwise_and_expr     {}
+                | bitwise_xor_expr '^' bitwise_and_expr     {$$ = create_binary_node($2,$1,$3);}
                 ;
 
 bitwise_or_expr: bitwise_xor_expr                           {$$ = $1;}
-               | bitwise_or_expr '|' bitwise_xor_expr       {}
+               | bitwise_or_expr '|' bitwise_xor_expr       {$$ = create_binary_node($2,$1,$3);}
                ;
 
-logical_and_expr: bitwise_or_expr                           {$$ = $1;}
-                | logical_and_expr LOGAND bitwise_or_expr     {}
+logical_and_expr: bitwise_or_expr                             {$$ = $1;}
+                | logical_and_expr LOGAND bitwise_or_expr     {$$ = create_binary_node($2,$1,$3);}
                 ;
 
-logical_or_expr: logical_and_expr                           {$$ = $1;}
-               | logical_or_expr LOGOR logical_and_expr      {}
+logical_or_expr: logical_and_expr                            {$$ = $1;}
+               | logical_or_expr LOGOR logical_and_expr      {$$ = create_binary_node($2,$1,$3);}
                ;
 
-conditional_expr: logical_or_expr                                   {$$ = $1;}
-                | logical_or_expr '?' expr : conditional_expr       {}
+conditional_expr: logical_or_expr                               {$$ = $1;}
+                | logical_or_expr '?' expr : conditional_expr   {$$ = create_ternary_node($1,$3,$5);}
                 ;
 
 assignment_expr: conditional_expr                           {$$ = $1;}
-               | unary_expr assignment_op assignment_expr   {}
+               | unary_expr assignment_op assignment_expr   {$$ = create_binary_node($2,$1,$3);}
                ;
 
 assignment_op: '='          {$$ = $1;}
@@ -165,7 +166,7 @@ assignment_op: '='          {$$ = $1;}
              ;
 
 expr: assignment_expr               {$$ = $1;}
-    | expr ',' assignment_expr      {}
+    | expr ',' assignment_expr      {$$ = create_binary_node($2,$1,$3);}
     ;
 
 %%
