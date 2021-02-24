@@ -6,12 +6,11 @@
 /* ------------- */
 
 %{
-
-
+#include parser.h;
 %}
 
 %union {
-    struct num_type number;
+    num_type number;
     char c;
     char *string;
     char *ident;
