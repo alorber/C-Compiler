@@ -22,16 +22,16 @@ enum nodetype {
 // ---------
 
 typedef struct astnode {
-    int nodetype;
+    int node_type;
     // Union of possible nodes
     union {
-        astnode_unary_op unary_op;
-        astnode_binary_op binary_op;
-        astnode_ternary_op ternary_op;
-        astnode_number number;
-        astnode_ident ident;
-        astnode_string string;
-        astnode_char charlit;
+        astnode_unary_op ast_unary_op;
+        astnode_binary_op ast_binary_op;
+        astnode_ternary_op ast_ternary_op;
+        astnode_number ast_number;
+        astnode_ident ast_ident;
+        astnode_string ast_string;
+        astnode_char ast_charlit;
     };
 } astnode;
 
@@ -66,13 +66,15 @@ typedef struct astnode_char {
 } astnode_char;
 
 // AST Functions
-astnode create_unary_node() {}
-astnode create_binary_node() {}
-astnode create_ternary_node() {}
-astnode create_number_node() {}
-astnode create_ident_node() {}
-astnode create_string_node() {}
-astnode create_char_node() {}
+// -------------
 
+astnode* allocate_node_mem();
+astnode* create_unary_node(int op, astnode *expr); 
+astnode* create_binary_node(int op, astnode *left, astnode *right); 
+astnode* create_ternary_node(astnode *if_expr, astnode *then_expr, astnode *else_expr); 
+astnode* create_number_node(num_type number); 
+astnode* create_ident_node(char *ident); 
+astnode* create_string_node(char *string); 
+astnode* create_char_node(char charlit);
 
 #endif // ASTFUNCTIONS_H
