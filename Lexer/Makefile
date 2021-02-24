@@ -1,4 +1,4 @@
-# Andrew Lorber & Henry Son 
+# Andrew Lorber
 # Compilers - Lexical Analyzer Make File
 
 lexer: lexer.yy.o lexerFunctions.o

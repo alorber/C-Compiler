@@ -1,4 +1,4 @@
-/* Andrew Lorber & Henry Son */
+/* Andrew Lorber */
 /* Compilers - Parser */
 
 /* ------------- */
