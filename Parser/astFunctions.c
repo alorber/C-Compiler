@@ -41,6 +41,17 @@ astnode* create_binary_node(int op, astnode *left, astnode *right) {
     return binary_node;
 }
 
+// Builds a binary node for an expression with a compound operator (i.e +=)
+astnode* simplify_compound_op(int op, astnode *left, astnode *right) {
+        // Creates binary node for right side
+        astnode *right_node = create_binary_node(op, left, right);
+        
+        // Creates main binary node
+        astnode *binary_node = create_binary_node('=', left, right_node);
+
+        return binary_node;
+}
+
 astnode* create_ternary_node(astnode *if_expr, astnode *then_expr, astnode *else_expr) {
     astnode *ternary_node = allocate_node_mem();
     ternary_node->node_type = TERNARY_TYPE;
@@ -106,6 +117,7 @@ astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list) {
     return fnc_call_node;
 }
 
+// Creates an expression list
 astnode* init_expr_list(astnode* expr_list_head) {
     astnode *expr_list_node = allocate_node_mem();
     expr_list_node->node_type = EXPR_LIST_TYPE;
@@ -115,6 +127,7 @@ astnode* init_expr_list(astnode* expr_list_head) {
     return expr_list_node;
 }
 
+// Adds new argument node to expression list
 astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument) {
     // Creates new argument node
     astnode_argument *arg_node;
@@ -139,4 +152,16 @@ astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument) {
 
     // Returns head of list
     return expr_list;
+}
+
+// Creates number node with value of 1
+// Helper function for "++" and "--"
+astnode* create_num_one_node() {
+    astnode *num_one = allocate_node_mem();
+    num_one->node_type = NUMBER_TYPE;
+    num_one->ast_number.number.is_signed = UNSIGNED_TYPE;
+    num_one->ast_number.number.size_specifier = INT_TYPE;
+    num_one->ast_number.number.i_value = 1;
+
+    return num_one;
 }

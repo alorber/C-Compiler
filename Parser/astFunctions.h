@@ -87,6 +87,7 @@ typedef struct astnode_argument {
 astnode* allocate_node_mem();
 astnode* create_unary_node(int op, astnode *expr); 
 astnode* create_binary_node(int op, astnode *left, astnode *right); 
+astnode* simplify_compound_op(int op, astnode *left, astnode *right); // For compound operators (i.e +=)
 astnode* create_ternary_node(astnode *if_expr, astnode *then_expr, astnode *else_expr); 
 astnode* create_number_node(num_type number); 
 astnode* create_ident_node(char *ident); 
@@ -95,5 +96,8 @@ astnode* create_char_node(char charlit);
 astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list);
 astnode* init_expr_list(astnode* expr_list_head);
 astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument);
+
+// Helper function to create number node with value of 1 (for ++ & --)
+astnode* create_num_one_node();
 
 #endif // ASTFUNCTIONS_H

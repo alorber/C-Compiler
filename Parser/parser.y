@@ -31,7 +31,7 @@
 %token ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE INT LONG REGISTER 
 %token RESTRICT RETURN SHORT SIGNED STATIC STRUCT SWITCH TYPEDEF UNION 
 %token UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
-
+2
 /* Types (in order of grammar) */
 %type<node> primary_expr postfix_expr function_call expr_list unary_expr
 %type<op> unary_op
@@ -79,12 +79,12 @@ postfix_expr: primary_expr                  {$$ = $1;}
             | function_call                 {$$ = $1;}
             | postfix_expr '.' IDENT        {}
             | postfix_expr INDSEL IDENT     {}
-            | postfix_expr PLUSPLUS         {}
-            | postfix_expr MINUSMINUS       {}
+            | postfix_expr PLUSPLUS         {$$ = create_unary_node($2,$1);}
+            | postfix_expr MINUSMINUS       {$$ = create_unary_node($2,$1);}
             ;
 
-function_call: postfix_expr '(' expr_list ')'   {$$ = create_fnc_call_node($1, $3);}
-             | postfix_expr '(' ')'             {$$ = create_fnc_call_node($1, NULL);}
+function_call: postfix_expr '(' expr_list ')'   {$$ = create_fnc_call_node($1,$3);}
+             | postfix_expr '(' ')'             {$$ = create_fnc_call_node($1,NULL);}
              ;
 
 expr_list: assignment_expr                  {$$ = init_expr_list($1);}
@@ -92,8 +92,10 @@ expr_list: assignment_expr                  {$$ = init_expr_list($1);}
          ;
 
 unary_expr: postfix_expr            {$$ = $1;}
-          | PLUSPLUS unary_expr     {}
-          | MINUSMINUS unary_expr   {}
+          | PLUSPLUS unary_expr     {astnode *num_one = create_num_one_node();
+                                     $$ = simplify_compound_op('+', $2, num_one);}
+          | MINUSMINUS unary_expr   {astnode *num_one = create_num_one_node();
+                                     $$ = simplify_compound_op('-', $2, num_one);}
           | unary_op cast_expr      {$$ = create_unary_node($1,$2);}
           | SIZEOF unary_expr       {$$ = create_unary_node($1,$2);}
           ;
@@ -162,20 +164,20 @@ conditional_expr: logical_or_expr                                 {$$ = $1;}
                 ;
 
 assignment_expr: conditional_expr                           {$$ = $1;}
-               | unary_expr assignment_op assignment_expr   {$$ = create_binary_node($2,$1,$3);}
+               | unary_expr '=' assignment_expr             {$$ = create_binary_node($2,$1,$3);}
+               | unary_expr assignment_op assignment_expr   {$$ = simplify_compound_op($2,$1,$3);}
                ;
 
-assignment_op: '='          {$$ = $1;}
-             | TIMESEQ      {$$ = $1;}
-             | DIVEQ        {$$ = $1;}
-             | MODEQ        {$$ = $1;}
-             | PLUSEQ       {$$ = $1;}
-             | MINUSEQ      {$$ = $1;}
-             | SHLEQ        {$$ = $1;}
-             | SHREQ        {$$ = $1;}
-             | ANDEQ        {$$ = $1;}
-             | XOREQ        {$$ = $1;}
-             | OREQ         {$$ = $1;}
+assignment_op: TIMESEQ      {$$ = '*';}
+             | DIVEQ        {$$ = '/';}
+             | MODEQ        {$$ = '%';}
+             | PLUSEQ       {$$ = '+';}
+             | MINUSEQ      {$$ = '-';}
+             | SHLEQ        {$$ = SHL;}
+             | SHREQ        {$$ = SHR;}
+             | ANDEQ        {$$ = '&';}
+             | XOREQ        {$$ = '^';}
+             | OREQ         {$$ = '|';}
              ;
 
 expr: assignment_expr               {$$ = $1;}
