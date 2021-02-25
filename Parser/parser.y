@@ -8,6 +8,7 @@
 %{
 #include "parser.h"
 #include "astFunctions.h"
+#include "../Lexer/lexerFunctions.h"
 %}
 
 %union {
@@ -66,6 +67,9 @@
 /* ------- */
 /*  RULES  */
 /* ------- */
+
+start_expr: expr                {print_ast($1,0);}
+          | start_expr expr     {print_ast($1,0);}
 
 primary_expr: IDENT           {$$ = create_ident_node($1);}
             | CHARLIT         {$$ = create_char_node($1);}
@@ -194,3 +198,215 @@ expr: assignment_expr               {$$ = $1;}
 /* ----------- */
 /*  USER CODE  */
 /* ----------- */
+
+int main() {
+    yyparse();
+    return 0;
+}
+
+// Prints number of indents given
+void print_indents(num_indents) {
+    // Indents
+    for(int i = 0; i < num_indents; i++) {
+        fprintf(stdout,"\t");
+    }
+}
+
+// Prints AST
+void print_ast(astnode *node, int num_indents) {
+    // Prints indents
+    print_indents(num_indents);
+
+    // Checks type for printing
+    switch(node->node_type) {
+        case UNARY_TYPE:
+            // Checks for special operators
+            int op = node->ast_unary_op.op;
+            switch(op) {
+                // Address Of (&)
+                case '&':
+                    fprintf(stdout, "ADDRESSOF\n");
+                    break;
+
+                // Dereference (*)
+                case '*':
+                    fprintf(stdout, "DEREF\n");
+                    break;
+
+                // Sizeof
+                case SIZEOF:
+                    fprintf(stdout, "SIZEOF\n");
+                    break;
+
+                // a++ & a--
+                case PLUSPLUS:
+                    fprintf(stdout, "UNARY OP POSTINC\n");
+                    break;
+                case MINUSMINUS:
+                    fprintf(stdout, "UNARY OP POSTDEC\n");
+                    break;
+
+                // Other
+                default:
+                    if(op < 256) {
+                        fprintf(stdout, "UNARY OP %c\n", op);
+                    } else {
+                        // TODO: PRINT STRING OF SYMBOL
+                        fprintf(stdout, "UNARY OP %s\n", print_keyword(op));
+                    }
+            }
+
+            // Prints sub-node
+            print_ast(node->ast_unary_op.expr,num_indents+1);
+
+            break;
+
+        case BINARY_TYPE:
+            // Checks for various operators
+            int op = node->ast_binary_op.op;
+            switch(op) {
+                // Assignment
+                case '=':
+                    fprintf(stdout, "ASSIGNMENT\n");
+                    break;
+
+                // Comparison
+                case '<':
+                case '>':
+                    fprintf(stdout, "COMPARISON OP %c\n", op);
+                    break;
+                case LTEQ:
+                    fprintf(stdout, "COMPARISON OP <=\n");
+                    break;
+                case GTEQ:
+                    fprintf(stdout, "COMPARISON OP >=\n");
+                    break;
+                case EQEQ:
+                    fprintf(stdout, "COMPARISON OP ==\n");
+                    break;
+                case NOTEQ:
+                    fprintf(stdout, "COMPARISON OP !=\n");
+                    break;
+
+                // Logical
+                case LOGAND:
+                    fprintf(stdout, "LOGICAL OP &&\n");
+                    break;
+                case LOGOR:
+                    fprintf(stdout, "LOGICAL OP ||\n");
+                    break;
+
+                // Selection
+                case ".":
+                    fprintf(stdout, "SELECT\n");
+                    break;
+
+                // Other
+                default:   
+                    if(op < 256) {
+                        fprintf(stdout, "BINARY OP %c\n", op);
+                    } else {
+                        // TODO: PRINT STRING OF SYMBOL
+                        fprintf(stdout, "BINARY OP %s\n", print_keyword(op));
+                    }
+            }
+
+            // Prints sub-nodes
+            print_ast(node->ast_binary_op.left_expr, num_indents+1);
+            print_ast(node->ast_binary_op.right_expr, num_indents+1);
+
+            break;
+
+        case TERNARY TYPE:
+            // IF
+            fprintf(stdout, "TERNARY OP, IF:\n");
+            print_ast(node->ast_ternary_op.if_expr, num_indents+1);
+
+            // THEN
+            print_indents(num_indents);
+            fprintf(stdout, "THEN:\n");
+            print_ast(node->ast_ternary_op.then_expr, num_indents+1);
+
+            // ELSE
+            print_indents(num_indents);
+            fprintf(stdout, "ELSE:\n");
+            print_ast(node->ast_ternary_op.else_expr, num_indents+1);
+
+            break;
+
+        case NUMBER_TYPE:
+            fprintf(stdout, "CONSTANT: (type=");
+
+            // Checks number type
+            int number = node->ast_number.number;
+            switch(number.size_specifier) {
+                case INT_TYPE:
+                    fprintf(stdout, "int)%lli\n", number.i_value);
+                    break;
+                case LONG_TYPE:
+                        fprintf(stdout, "long)%lli\n", number.i_value);
+                        break;
+                case LONGLONG_TYPE:
+                        fprintf(stdout, "longlong)%lli\n", number.i_value);
+                        break;
+                case FLOAT_TYPE:
+                        fprintf(stdout, "float)%Lf\n", number.d_value);
+                        break;
+                case DOUBLE_TYPE:
+                        fprintf(stdout, "double)%Lf\n", number.d_value);
+                        break;
+                case LONGDOUBLE_TYPE:
+                        fprintf(stdout, "longdouble)%Lf\n", number.d_value);
+                        break;
+            }
+
+            break;
+
+        case IDENT_TYPE:
+            fprintf(stdout, "IDENT %s\n", node->ast_ident.ident);
+            break;
+
+        case STRING_TYPE:
+            fprintf(stdout, "STRING ");
+            print_string(node->ast_string->string);
+            fprintf(stdout, "\n");
+
+            break;
+
+        case CHARLIT_TYPE:
+            fprintf(stdout, "CHARLIT ");
+            print_string(node->ast_charlit->charlit);
+            fprintf(stdout, "\n");
+
+            break;
+
+        case FUNCTION_TYPE:
+            fprintf(stdout, "FNCALL, %i arguments\n", node->ast_fnc_call.num_arguments);
+
+            // Prints function name
+            print_ast(node->ast_fnc_call.function_name, num_indents+1);
+
+            // Checks for empty expr_list
+            if(node->ast_fnc_call.expr_list_head == NULL) {
+                break;
+            }
+
+            // Prints arguments
+            astnode_argument *curr_argument = &(node->ast_fnc_call.expr_list_head->ast_expr_list_head)
+            for(arg_number = 1; curr_argument != NULL; arg_number++, curr_argument = curr_argument->next) {
+                print_indents(num_indents);
+                fprintf(stdout, "arg #%i=\n", arg_number);
+                print_ast(curr_argument->expr, num_indents+1);
+            }
+            
+            break;
+
+        default:
+            fprintf(stdout, "ERROR: UNKNOWN NODE\n");
+    }
+
+    // Separates expressions
+    if(num_indents == 0) {
+        fprintf(stdout, "\n\n");
+    }
+}
