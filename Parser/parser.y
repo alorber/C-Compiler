@@ -75,10 +75,16 @@ primary_expr: IDENT           {$$ = create_ident_node($1);}
             ;
 
 postfix_expr: primary_expr                  {$$ = $1;}
-            | postfix_expr '[' expr ']'     {}
+            | postfix_expr '[' expr ']'     {/* a[b] ===> *(a+b) */
+                                             astnode *pointer = create_binary_node('+',$1,$3);
+                                             $$ = create_unary_node('*',pointer);}
             | function_call                 {$$ = $1;}
-            | postfix_expr '.' IDENT        {}
-            | postfix_expr INDSEL IDENT     {}
+            | postfix_expr '.' IDENT        {astnode *ident_node = create_ident_node($3);
+                                             $$ = create_binary_node($2,$1,$3);}
+            | postfix_expr INDSEL IDENT     {/* a->b ===> (*a).b */
+                                             astnode *pointer = create_unary_node('*',$1);
+                                             astnode *ident_node = create_ident_node($3);
+                                             $$ = create_binary_node('.',pointer,ident_node);}
             | postfix_expr PLUSPLUS         {$$ = create_unary_node($2,$1);}
             | postfix_expr MINUSMINUS       {$$ = create_unary_node($2,$1);}
             ;
