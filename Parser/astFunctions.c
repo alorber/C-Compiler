@@ -43,13 +43,13 @@ astnode* create_binary_node(int op, astnode *left, astnode *right) {
 
 // Builds a binary node for an expression with a compound operator (i.e +=)
 astnode* simplify_compound_op(int op, astnode *left, astnode *right) {
-        // Creates binary node for right side
-        astnode *right_node = create_binary_node(op, left, right);
-        
-        // Creates main binary node
-        astnode *binary_node = create_binary_node('=', left, right_node);
+    // Creates binary node for right side
+    astnode *right_node = create_binary_node(op, left, right);
+    
+    // Creates main binary node
+    astnode *binary_node = create_binary_node('=', left, right_node);
 
-        return binary_node;
+    return binary_node;
 }
 
 astnode* create_ternary_node(astnode *if_expr, astnode *then_expr, astnode *else_expr) {
@@ -81,15 +81,15 @@ astnode* create_ident_node(char *ident) {
 astnode* create_string_node(char *string) {
     astnode *string_node = allocate_node_mem();
     string_node->node_type = STRING_TYPE;
-    string_node->ast_string.string = string;
+    string_node->ast_string.string = strdup(string);
 
     return string_node;
 }
 
-astnode* create_char_node(char charlit) {
+astnode* create_char_node(char *charlit) {
     astnode *char_node = allocate_node_mem();
     char_node->node_type = CHARLIT_TYPE;
-    char_node->ast_charlit.charlit = charlit;
+    char_node->ast_charlit.charlit = strdup(charlit);
 
     return char_node;
 }

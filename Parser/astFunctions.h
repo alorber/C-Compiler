@@ -5,7 +5,13 @@
 #ifndef ASTFUNCTIONS_H
 #define ASTFUNCTIONS_H
 
-#include "../Lexer/lexer.h";
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include "numType.h"
+
+extern int yylex();
 
 // Enum of AST node types
 enum nodetype {
@@ -23,6 +29,47 @@ enum nodetype {
 // AST Nodes
 // ---------
 
+typedef struct astnode_unary_op {
+    int op;
+    struct astnode *expr;
+} astnode_unary_op;
+
+typedef struct astnode_binary_op {
+    int op;
+    struct astnode *left_expr, *right_expr;
+} astnode_binary_op;
+
+typedef struct astnode_ternary_op {
+    struct astnode *if_expr, *then_expr, *else_expr;
+} astnode_ternary_op;
+
+typedef struct astnode_number {
+    num_type number;
+} astnode_number;
+
+typedef struct astnode_ident {
+    char* ident;
+} astnode_ident;
+
+typedef struct astnode_string {
+    char *string;
+} astnode_string;
+
+typedef struct astnode_char {
+    char *charlit;
+} astnode_char;
+
+typedef struct astnode_function_call {
+    struct astnode *function_name;
+    int num_arguments;
+    struct astnode *expr_list_head; // List of arguments
+} astnode_function_call;
+
+typedef struct astnode_argument {
+    struct astnode *expr;
+    struct astnode_argument *next;
+} astnode_argument;
+
 typedef struct astnode {
     int node_type;
     // Union of possible nodes
@@ -39,47 +86,6 @@ typedef struct astnode {
     };
 } astnode;
 
-typedef struct astnode_unary_op {
-    int op;
-    astnode *expr;
-} astnode_unary_op;
-
-typedef struct astnode_binary_op {
-    int op;
-    astnode *left_expr, *right_expr;
-} astnode_binary_op;
-
-typedef struct astnode_ternary_op {
-    astnode *if_expr, *then_expr, *else_expr;
-} astnode_ternary_op;
-
-typedef struct astnode_number {
-    num_type number;
-} astnode_number;
-
-typedef struct astnode_ident {
-    char* ident;
-} astnode_ident;
-
-typedef struct astnode_string {
-    char *string;
-} astnode_string;
-
-typedef struct astnode_char {
-    char charlit;
-} astnode_char;
-
-typedef struct astnode_function_call {
-    astnode *function_name;
-    int num_arguments;
-    astnode *expr_list_head; // List of arguments
-} astnode_function_call;
-
-typedef struct astnode_argument {
-    astnode *expr;
-    astnode_argument *next;
-} astnode_argument;
-
 
 // AST Functions
 // -------------
@@ -92,7 +98,7 @@ astnode* create_ternary_node(astnode *if_expr, astnode *then_expr, astnode *else
 astnode* create_number_node(num_type number); 
 astnode* create_ident_node(char *ident); 
 astnode* create_string_node(char *string); 
-astnode* create_char_node(char charlit);
+astnode* create_char_node(char *charlit);
 astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list);
 astnode* init_expr_list(astnode* expr_list_head);
 astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument);

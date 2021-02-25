@@ -6,23 +6,23 @@
 /* ------------- */
 
 %{
+#include "numType.h"
 #include "parser.h"
 #include "astFunctions.h"
-#include "../Lexer/lexerFunctions.h"
+#include "lexerFunctions.h"
 %}
 
 %union {
-    num_type number;
-    char c;
+    struct num_type number;
     char *string;
     char *ident;
     int op;
-    astnode *node;
+    struct astnode *node;
 }
 
 /* Tokens */
 %token<ident> IDENT 
-%token<c> CHARLIT 
+%token<string> CHARLIT 
 %token<string> STRING 
 %token<number> NUMBER 
 %token<op> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ
@@ -34,14 +34,14 @@
 %token UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 2
 /* Types (in order of grammar) */
-%type<node> primary_expr postfix_expr function_call expr_list unary_expr
+%type<node> start_expr primary_expr postfix_expr function_call expr_list unary_expr
 %type<op> unary_op
 %type<node> cast_expr multiplicative_expr additive_expr shift_expr
 %type<node> relational_expr equality_expr bitwise_and_expr bitwise_xor_expr
 %type<node> bitwise_or_expr logical_and_expr logical_or_expr conditional_expr
 %type<node> assignment_expr expr
 %type<op> assignment_op
-%type<op> '=' '<' '>' '!' '~' '(' ')' '[' ']'
+%type<op> '=' '<' '>' '!' '~' '(' ')' '[' ']' '.'
 
 /* Operator Precedence & Associativity */
 /* From cpp website */
@@ -58,8 +58,8 @@
 %left SHL SHR
 %left <op> '+' '-'
 %left <op> '*' '/' '%'
-%right PLUSPLUS MINUSMINUS /* prefix */ SIZEOF '!' '~' /* +a, -a, &a, a* */
-%left INDSEL '(' ')' '[' ']' /* .a, ->a */
+%right SIZEOF '!' '~' /* +a, -a, &a, a* */
+%left PLUSPLUS MINUSMINUS /* postfix */ INDSEL '(' ')' '[' ']' /* .a, ->a */
 %left IF
 %left ELSE
 
@@ -68,8 +68,9 @@
 /*  RULES  */
 /* ------- */
 
-start_expr: expr                {print_ast($1,0);}
-          | start_expr expr     {print_ast($1,0);}
+start_expr: expr ';'                {print_ast($1,0);}
+          | start_expr expr ';'     {print_ast($2,0);}
+          ;
 
 primary_expr: IDENT           {$$ = create_ident_node($1);}
             | CHARLIT         {$$ = create_char_node($1);}
@@ -84,13 +85,13 @@ postfix_expr: primary_expr                  {$$ = $1;}
                                              $$ = create_unary_node('*',pointer);}
             | function_call                 {$$ = $1;}
             | postfix_expr '.' IDENT        {astnode *ident_node = create_ident_node($3);
-                                             $$ = create_binary_node($2,$1,$3);}
+                                             $$ = create_binary_node('.',$1,ident_node);}
             | postfix_expr INDSEL IDENT     {/* a->b ===> (*a).b */
                                              astnode *pointer = create_unary_node('*',$1);
                                              astnode *ident_node = create_ident_node($3);
                                              $$ = create_binary_node('.',pointer,ident_node);}
-            | postfix_expr PLUSPLUS         {$$ = create_unary_node($2,$1);}
-            | postfix_expr MINUSMINUS       {$$ = create_unary_node($2,$1);}
+            | postfix_expr PLUSPLUS         {$$ = create_unary_node(PLUSPLUS,$1);}
+            | postfix_expr MINUSMINUS       {$$ = create_unary_node(MINUSMINUS,$1);}
             ;
 
 function_call: postfix_expr '(' expr_list ')'   {$$ = create_fnc_call_node($1,$3);}
@@ -107,66 +108,66 @@ unary_expr: postfix_expr            {$$ = $1;}
           | MINUSMINUS unary_expr   {astnode *num_one = create_num_one_node();
                                      $$ = simplify_compound_op('-', $2, num_one);}
           | unary_op cast_expr      {$$ = create_unary_node($1,$2);}
-          | SIZEOF unary_expr       {$$ = create_unary_node($1,$2);}
+          | SIZEOF unary_expr       {$$ = create_unary_node(SIZEOF,$2);}
           ;
 
-unary_op: '&'   {$$ = $1;}
-        | '*'   {$$ = $1;}
-        | '+'   {$$ = $1;}
-        | '-'   {$$ = $1;}
-        | '~'   {$$ = $1;}
-        | '!'   {$$ = $1;}
+unary_op: '&'   {$$ = '&';}
+        | '*'   {$$ = '*';}
+        | '+'   {$$ = '+';}
+        | '-'   {$$ = '-';}
+        | '~'   {$$ = '~';}
+        | '!'   {$$ = '!';}
         ;
 
 cast_expr: unary_expr   {$$ = $1;}
          ;
 
 multiplicative_expr: cast_expr                           {$$ = $1;}
-                   | multiplicative_expr '*' cast_expr   {$$ = create_binary_node($2,$1,$3);}
-                   | multiplicative_expr '/' cast_expr   {$$ = create_binary_node($2,$1,$3);}
-                   | multiplicative_expr '%' cast_expr   {$$ = create_binary_node($2,$1,$3);}
+                   | multiplicative_expr '*' cast_expr   {$$ = create_binary_node('*',$1,$3);}
+                   | multiplicative_expr '/' cast_expr   {$$ = create_binary_node('/',$1,$3);}
+                   | multiplicative_expr '%' cast_expr   {$$ = create_binary_node('%',$1,$3);}
                    ;
 
 additive_expr: multiplicative_expr                      {$$ = $1;}
-             | additive_expr '+' multiplicative_expr    {$$ = create_binary_node($2,$1,$3);}
-             | additive_expr '-' multiplicative_expr    {$$ = create_binary_node($2,$1,$3);}
+             | additive_expr '+' multiplicative_expr    {$$ = create_binary_node('+',$1,$3);}
+             | additive_expr '-' multiplicative_expr    {$$ = create_binary_node('-',$1,$3);}
              ;
 
 shift_expr: additive_expr                   {$$ = $1;}
-          | shift_expr SHL additive_expr    {$$ = create_binary_node($2,$1,$3);}
-          | shift_expr SHR additive_expr    {$$ = create_binary_node($2,$1,$3);}
+          | shift_expr SHL additive_expr    {$$ = create_binary_node(SHL,$1,$3);}
+          | shift_expr SHR additive_expr    {$$ = create_binary_node(SHR,$1,$3);}
           ;
 
 relational_expr: shift_expr                         {$$ = $1;}
-               | relational_expr '<' shift_expr     {$$ = create_binary_node($2,$1,$3);}
-               | relational_expr '>' shift_expr     {$$ = create_binary_node($2,$1,$3);}
-               | relational_expr LTEQ shift_expr    {$$ = create_binary_node($2,$1,$3);}
-               | relational_expr GTEQ shift_expr    {$$ = create_binary_node($2,$1,$3);}
+               | relational_expr '<' shift_expr     {$$ = create_binary_node('<',$1,$3);}
+               | relational_expr '>' shift_expr     {$$ = create_binary_node('>',$1,$3);}
+               | relational_expr LTEQ shift_expr    {$$ = create_binary_node(LTEQ,$1,$3);}
+               | relational_expr GTEQ shift_expr    {$$ = create_binary_node(GTEQ,$1,$3);}
                ;
 
 equality_expr: relational_expr                          {$$ = $1;}
-             | equality_expr EQEQ relational_expr       {$$ = create_binary_node($2,$1,$3);}
-             | equality_expr NOTEQ relational_expr      {$$ = create_binary_node($2,$1,$3);}
+             | equality_expr EQEQ relational_expr       {$$ = create_binary_node(EQEQ,$1,$3);}
+             | equality_expr NOTEQ relational_expr      {$$ = create_binary_node(NOTEQ,$1,$3);}
              ;
 
 bitwise_and_expr: equality_expr                         {$$ = $1;}
-                | bitwise_and_expr '&' equality_expr    {$$ = create_binary_node($2,$1,$3);}
+                | bitwise_and_expr '&' equality_expr    {$$ = create_binary_node('&',$1,$3);}
                 ;
 
 bitwise_xor_expr: bitwise_and_expr                          {$$ = $1;}
-                | bitwise_xor_expr '^' bitwise_and_expr     {$$ = create_binary_node($2,$1,$3);}
+                | bitwise_xor_expr '^' bitwise_and_expr     {$$ = create_binary_node('^',$1,$3);}
                 ;
 
 bitwise_or_expr: bitwise_xor_expr                           {$$ = $1;}
-               | bitwise_or_expr '|' bitwise_xor_expr       {$$ = create_binary_node($2,$1,$3);}
+               | bitwise_or_expr '|' bitwise_xor_expr       {$$ = create_binary_node('|',$1,$3);}
                ;
 
 logical_and_expr: bitwise_or_expr                             {$$ = $1;}
-                | logical_and_expr LOGAND bitwise_or_expr     {$$ = create_binary_node($2,$1,$3);}
+                | logical_and_expr LOGAND bitwise_or_expr     {$$ = create_binary_node(LOGAND,$1,$3);}
                 ;
 
 logical_or_expr: logical_and_expr                            {$$ = $1;}
-               | logical_or_expr LOGOR logical_and_expr      {$$ = create_binary_node($2,$1,$3);}
+               | logical_or_expr LOGOR logical_and_expr      {$$ = create_binary_node(LOGOR,$1,$3);}
                ;
 
 conditional_expr: logical_or_expr                                 {$$ = $1;}
@@ -174,7 +175,7 @@ conditional_expr: logical_or_expr                                 {$$ = $1;}
                 ;
 
 assignment_expr: conditional_expr                           {$$ = $1;}
-               | unary_expr '=' assignment_expr             {$$ = create_binary_node($2,$1,$3);}
+               | unary_expr '=' assignment_expr             {$$ = create_binary_node('=',$1,$3);}
                | unary_expr assignment_op assignment_expr   {$$ = simplify_compound_op($2,$1,$3);}
                ;
 
@@ -191,7 +192,7 @@ assignment_op: TIMESEQ      {$$ = '*';}
              ;
 
 expr: assignment_expr               {$$ = $1;}
-    | expr ',' assignment_expr      {$$ = create_binary_node($2,$1,$3);}
+    | expr ',' assignment_expr      {$$ = create_binary_node(',',$1,$3);}
     ;
 
 %%
@@ -204,8 +205,12 @@ int main() {
     return 0;
 }
 
+int yyerror() {
+    
+}
+
 // Prints number of indents given
-void print_indents(num_indents) {
+void print_indents(int num_indents) {
     // Indents
     for(int i = 0; i < num_indents; i++) {
         fprintf(stdout,"\t");
@@ -219,10 +224,10 @@ void print_ast(astnode *node, int num_indents) {
 
     // Checks type for printing
     switch(node->node_type) {
-        case UNARY_TYPE:
+        case UNARY_TYPE: ;
             // Checks for special operators
-            int op = node->ast_unary_op.op;
-            switch(op) {
+            int u_op = node->ast_unary_op.op;
+            switch(u_op) {
                 // Address Of (&)
                 case '&':
                     fprintf(stdout, "ADDRESSOF\n");
@@ -248,11 +253,13 @@ void print_ast(astnode *node, int num_indents) {
 
                 // Other
                 default:
-                    if(op < 256) {
-                        fprintf(stdout, "UNARY OP %c\n", op);
+                    if(u_op < 256) {
+                        fprintf(stdout, "UNARY OP %c\n", u_op);
                     } else {
                         // TODO: PRINT STRING OF SYMBOL
-                        fprintf(stdout, "UNARY OP %s\n", print_keyword(op));
+                        fprintf(stdout, "UNARY OP ");
+                        print_keyword(u_op);
+                        fprintf(stdout, "\n");
                     }
             }
 
@@ -261,10 +268,10 @@ void print_ast(astnode *node, int num_indents) {
 
             break;
 
-        case BINARY_TYPE:
+        case BINARY_TYPE: ;
             // Checks for various operators
-            int op = node->ast_binary_op.op;
-            switch(op) {
+            int b_op = node->ast_binary_op.op;
+            switch(b_op) {
                 // Assignment
                 case '=':
                     fprintf(stdout, "ASSIGNMENT\n");
@@ -273,7 +280,7 @@ void print_ast(astnode *node, int num_indents) {
                 // Comparison
                 case '<':
                 case '>':
-                    fprintf(stdout, "COMPARISON OP %c\n", op);
+                    fprintf(stdout, "COMPARISON OP %c\n", b_op);
                     break;
                 case LTEQ:
                     fprintf(stdout, "COMPARISON OP <=\n");
@@ -297,17 +304,19 @@ void print_ast(astnode *node, int num_indents) {
                     break;
 
                 // Selection
-                case ".":
+                case '.':
                     fprintf(stdout, "SELECT\n");
                     break;
 
                 // Other
                 default:   
-                    if(op < 256) {
-                        fprintf(stdout, "BINARY OP %c\n", op);
+                    if(b_op < 256) {
+                        fprintf(stdout, "BINARY OP %c\n", b_op);
                     } else {
                         // TODO: PRINT STRING OF SYMBOL
-                        fprintf(stdout, "BINARY OP %s\n", print_keyword(op));
+                        fprintf(stdout, "BINARY OP "); 
+                        print_keyword(b_op);
+                        fprintf(stdout, "\n");
                     }
             }
 
@@ -317,7 +326,7 @@ void print_ast(astnode *node, int num_indents) {
 
             break;
 
-        case TERNARY TYPE:
+        case TERNARY_TYPE:
             // IF
             fprintf(stdout, "TERNARY OP, IF:\n");
             print_ast(node->ast_ternary_op.if_expr, num_indents+1);
@@ -338,7 +347,7 @@ void print_ast(astnode *node, int num_indents) {
             fprintf(stdout, "CONSTANT: (type=");
 
             // Checks number type
-            int number = node->ast_number.number;
+            num_type number = node->ast_number.number;
             switch(number.size_specifier) {
                 case INT_TYPE:
                     fprintf(stdout, "int)%lli\n", number.i_value);
@@ -368,14 +377,14 @@ void print_ast(astnode *node, int num_indents) {
 
         case STRING_TYPE:
             fprintf(stdout, "STRING ");
-            print_string(node->ast_string->string);
+            print_string(node->ast_string.string);
             fprintf(stdout, "\n");
 
             break;
 
         case CHARLIT_TYPE:
             fprintf(stdout, "CHARLIT ");
-            print_string(node->ast_charlit->charlit);
+            print_string(node->ast_charlit.charlit);
             fprintf(stdout, "\n");
 
             break;
@@ -392,8 +401,8 @@ void print_ast(astnode *node, int num_indents) {
             }
 
             // Prints arguments
-            astnode_argument *curr_argument = &(node->ast_fnc_call.expr_list_head->ast_expr_list_head)
-            for(arg_number = 1; curr_argument != NULL; arg_number++, curr_argument = curr_argument->next) {
+            astnode_argument *curr_argument = &(node->ast_fnc_call.expr_list_head->ast_expr_list_head);
+            for(int arg_number = 1; curr_argument != NULL; arg_number++, curr_argument = curr_argument->next) {
                 print_indents(num_indents);
                 fprintf(stdout, "arg #%i=\n", arg_number);
                 print_ast(curr_argument->expr, num_indents+1);

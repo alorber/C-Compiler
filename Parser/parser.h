@@ -4,11 +4,12 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "astFunctions.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include "numType.h"
+#include "astFunctions.h"
 
 // Prints number of indents given
 // Helper function for print_ast
