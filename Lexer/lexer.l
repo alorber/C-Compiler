@@ -8,11 +8,13 @@
 %option noyywrap
 
 %{
-#include "tokens-manual.h"
+// #include "tokens-manual.h"
+#include "../Parser/numType.h"
+#include "../Parser/parser.tab.h"
 #include "lexer.h"
 #include "lexerFunctions.h"
 
-extern YYSTYPE yylval;
+YYSTYPE yylval;
 
 char filename[256] = "<stdin>";
 int line_number = 1;
@@ -20,8 +22,8 @@ int line_number = 1;
 
 /* STATES */
 %x FILE_INFO
-%x CHARLIT
-%x STRING
+%x CHAR
+%x STR
 %x INT_NUM
 %x FLOAT_NUM
 %x COMMENT
@@ -169,36 +171,36 @@ _Imaginary      {return _IMAGINARY;}
                              return IDENT;}
 
  /* CHARACTER LITERALS */
-[LuU]?\'                    {BEGIN CHARLIT;
+[LuU]?\'                    {BEGIN CHAR;
                              create_string();}
-<CHARLIT>[^\'\\\n]          {append_string(yytext);}
-<CHARLIT>\'                 {BEGIN INITIAL;
+<CHAR>[^\'\\\n]             {append_string(yytext);}
+<CHAR>\'                    {BEGIN INITIAL;
                              yylval.string = complete_string(1);
                              return CHARLIT;}
 
  /* STRINGS */
-[LuU]?\"                    {BEGIN STRING;
+[LuU]?\"                    {BEGIN STR;
                              create_string();}
-<STRING>[^\"\\\n]           {append_string(yytext);}
-<STRING>\"                  {BEGIN INITIAL;
+<STR>[^\"\\\n]              {append_string(yytext);}
+<STR>\"                     {BEGIN INITIAL;
                              yylval.string = complete_string(0);
                              return STRING;}
 
  /* ESCAPE SEQUENCES (STRING & CHAR) */
 
  /* Simple */
-<CHARLIT,STRING>\\[abfrntv0\'\"\\]      {append_escape(yytext,0);}
+<CHAR,STR>\\[abfrntv0\'\"\\]      {append_escape(yytext,0);}
 
  /* Octal */
-<CHARLIT,STRING>\\[0-7]{1,3}            {append_escape(yytext,8);}
+<CHAR,STR>\\[0-7]{1,3}            {append_escape(yytext,8);}
 
  /* Hex */
-<CHARLIT,STRING>\\x[a-fA-F0-9]+         {append_escape(yytext,16);}
+<CHAR,STR>\\x[a-fA-F0-9]+         {append_escape(yytext,16);}
 
  /* ERRORS */
-<CHARLIT,STRING>\n      {print_error(filename,line_number,yytext,"Unterminated string/char.");
+<CHAR,STR>\n            {print_error(filename,line_number,yytext,"Unterminated string/char.");
                          line_number++;}
-<CHARLIT,STRING>.       {print_error(filename,line_number,yytext,"Unknown character.");}
+<CHAR,STR>.             {print_error(filename,line_number,yytext,"Unknown character.");}
 .                       {print_error(filename,line_number,yytext,"Unknown character.");}
 
 %%
@@ -206,6 +208,8 @@ _Imaginary      {return _IMAGINARY;}
 /*  USER CODE  */
 /* ----------- */
 
+// REMOVED - NOT NEEDED BY PARSER
+/*
 int main() {
     int token;
 
@@ -295,5 +299,5 @@ int main() {
         }
     }
 }
-
+*/
 

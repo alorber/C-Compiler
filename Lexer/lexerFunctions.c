@@ -94,5 +94,5 @@ void print_keyword(int keyword) {
 		"WHILE", "_BOOL", "_COMPLEX", "_IMAGINARY"};
 	
 	// Subtracts keyword value from value of IDENT to get index in list
-	printf("%s\n",keyword_strings[keyword - 257]);
+	printf("%s\n",keyword_strings[keyword - 258]);
 }
