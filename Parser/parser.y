@@ -9,8 +9,12 @@
 #include "numType.h"
 #include "parser.h"
 #include "astFunctions.h"
-#include "lexerFunctions.h"
+#include "../Lexer/lexerFunctions.h"
+
+/* Remove comments to enable debugging */
+/* #define YYDEBUG	1 */
 %}
+/* %define parse.error verbose */
 
 %union {
     struct num_type number;
@@ -32,7 +36,7 @@
 %token ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE INT LONG REGISTER 
 %token RESTRICT RETURN SHORT SIGNED STATIC STRUCT SWITCH TYPEDEF UNION 
 %token UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
-2
+
 /* Types (in order of grammar) */
 %type<node> start_expr primary_expr postfix_expr function_call expr_list unary_expr
 %type<op> unary_op
@@ -201,12 +205,13 @@ expr: assignment_expr               {$$ = $1;}
 /* ----------- */
 
 int main() {
+    //yydebug = 0;   // Set value to 1 to enable debugging
     yyparse();
     return 0;
 }
 
-int yyerror() {
-    
+int yyerror (char const *s) {
+    fprintf(stderr, "%s\n", s);
 }
 
 // Prints number of indents given

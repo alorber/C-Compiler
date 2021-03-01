@@ -11,6 +11,8 @@
 #include "numType.h"
 #include "astFunctions.h"
 
+int yyerror (char const *s);
+
 // Prints number of indents given
 // Helper function for print_ast
 void print_indents(int num_indents);
