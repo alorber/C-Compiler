@@ -67,10 +67,15 @@
 %left IF
 %left ELSE
 
+%start decl_or_fnc_def
+
 %%
 /* ------- */
 /*  RULES  */
 /* ------- */
+
+/* EXPRESSIONS
+* -------------- */
 
 start_expr: expr ';'                {print_ast($1,0);}
           | start_expr expr ';'     {print_ast($2,0);}
@@ -198,6 +203,169 @@ assignment_op: TIMESEQ      {$$ = '*';}
 expr: assignment_expr               {$$ = $1;}
     | expr ',' assignment_expr      {$$ = create_binary_node(',',$1,$3);}
     ;
+
+/* DECLARATIONS
+* -------------- */
+
+// Top level of language
+decl_or_fnc_def: declaration    {}
+               | fnc_def        {}
+               ;
+
+declaration: decl_specifier ';'                   {}
+           | decl_specifier init_decl_list ';'    {}
+           ;
+
+decl_specifier: storage_class_specifier                     {}
+              | storage_class_specifier decl_specifier      {}
+              | type_specifier                              {}
+              | type_specifier decl_specifier               {}
+              | type_qualifier                              {}
+              | type_qualifier decl_specifier               {}
+              | fnc_specifier                               {}
+              | fnc_specifier decl_specifier                {}
+              ;
+
+init_decl_list: init_decl                       {}
+              | init_decl_list ',' init_decl    {}
+              ;
+
+init_decl: declarator                   {}
+         /*  Initialized declarations not supported */
+         | declarator '=' initializer   {} 
+         ;
+
+storage_class_specifier: TYPEDEF   {}
+                       | EXTERN    {}
+                       | STATIC    {}
+                       | AUTO      {}
+                       | REGISTER  {}
+                       ;
+
+type_specifier: VOID                    {}
+              | CHAR                    {}
+              | SHORT                   {}
+              | INT                     {}
+              | LONG                    {}
+              | FLOAT                   {}
+              | DOUBLE                  {}
+              | SIGNED                  {}
+              | UNSIGNED                {}
+              | BOOL                    {}
+              | COMPLEX                 {}
+              | struct_union_specifier  {}
+              | enum_specifier          {}
+              | typedef_name            {}
+              ;
+
+struct_union_specifier: struct_union '{' struct_decl_list '}'           {}
+                      | struct_union IDENT '{' struct_decl_list '}'     {}
+                      | struct_union IDENT   /* Reference */            {}
+                      ;
+
+struct_union: STRUCT    {}
+            | UNION     {}
+            ;
+
+struct_decl_list: struct_decl                    {}
+                | struct_decl_list struct_decl   {}
+                ;
+
+struct_decl: spec_qual_list ';'                     {}
+           | spec_qual_list struct_declarator_list ';'    {}
+           ;
+
+spec_qual_list: type_specifier                  {}
+              | type_specifier spec_qual_list   {}
+              | type_qualifier                  {}
+              | type_qualifier spec_qual_list   {}
+              ;
+
+struct_declarator_list: struct_declarator                             {}
+                      | struct_declarator_list ',' struct_declarator  {}
+                      ;
+
+struct_declarator: declarator   {}
+                 ; /* Bit fields not supported in this compiler */
+
+enum_specifier: ; /* Enums aren't supported in this compiler */
+
+type_qualifier: CONST       {}
+              | RESTRICT    {}
+              | VOLATILE    {}
+              ;
+
+fnc_specifier: INLINE   {}
+             ;
+
+declarator: dir_declarator           {}
+          | pointer dir_declarator   {}
+          ;
+
+dir_declarator: IDENT                                {}
+                 | '(' declarator ')'                {}
+                 /* More complex array expressions not supported */
+                 | dir_declarator '[' ']'            {}
+                 | dir_declarator '[' NUMBER ']'     {}  
+                 /* Compiler assumes all function declarators are () */
+                 | dir_declarator '(' ')'            {}
+                 ;
+
+pointer: '*'                                {}
+       | '*' type_qualifier_list            {}
+       | '*' pointer                        {}
+       | '*' type_qualifier_list pointer    {}
+       ;
+
+type_qualifier_list: type_qualifier                       {}
+                   | type_qualifier_list type_qualifier   {}
+                   ;
+
+type_name: spec_qual_list                       {}
+         | spec_qual_list abstr_declarator      {}
+         ;
+
+abstr_declarator: pointer                        {}
+                | dir_abstr_declarator           {}
+                | pointer dir_abstr_declarator   {}
+                ;
+
+dir_abstr_declarator: '(' abstr_declarator ')'              {}
+                    /* More complex array expressions not supported */
+                    | '[' ']'                               {}
+                    | dir_abstr_declarator '[' ']'          {}
+                    | '[' NUMBER ']'                        {}
+                    | dir_abstr_declarator '[' NUMBER ']'   {}
+                    /* Compiler assumes all function declarators are () */
+                    | '(' ')'                               {}
+                    | dir_abstr_declarator '(' ')'          {}
+                    ;
+
+typedef_name: IDENT   {}
+            ;
+
+initializer: assignment_expr   {} 
+           /*  Initialized declarations not supported */
+           ;
+
+fnc_def: decl_specifier declarator compound_stmt    {}
+       ;
+    
+compound_stmt: '{' decl_or_stmt_list '}'    {}
+             ;
+
+decl_or_stmt_list: decl_or_stmt                     {}
+                 | decl_or_stmt_list decl_or_stmt   {}
+                 ;
+
+decl_or_stmt: declaration   {}
+            | statement     {}
+            ;
+
+statement: compound_stmt    {}
+         | expr ';'         {}
+         ;
+
 
 %%
 /* ----------- */
