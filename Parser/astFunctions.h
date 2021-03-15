@@ -70,6 +70,15 @@ typedef struct astnode_argument {
     struct astnode_argument *next;
 } astnode_argument;
 
+typedef struct asnode_sym_table_entry {
+    char *symbol;   // IDENT symbol
+    astnode *sym_node;  // Value of symbol
+
+    char *filename; // File of symbol's first def.
+    char *line_num; // Line # of symbol's first def.
+} asnode_sym_table_entry;
+
+
 typedef struct astnode {
     int node_type;
     // Union of possible nodes
@@ -83,9 +92,9 @@ typedef struct astnode {
         astnode_char ast_charlit;
         astnode_function_call ast_fnc_call;
         astnode_argument ast_expr_list_head;
+        asnode_sym_table_entry ast_sym_entry;
     };
 } astnode;
-
 
 // AST Functions
 // -------------
