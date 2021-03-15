@@ -75,5 +75,23 @@ astnode *searchTable(symbolTable *sym_table, char *symbol);
 // Returns 1 on success, -1 on failure
 int addTableEntry(symbolTable *sym_table, astnode *sym_entry, int replace);
 
+// Scope Stack Functions
+// ----------------------
+
+// Initializes Scope Stack with File Scope
+// Run once at start of parser
+void initScopeStack();
+
+// Creates new scope and adds to stack
+void createNewScope(int scope_type);
+
+// Deletes innermost scope
+void deleteInnerScope();
+
+// Returns innermost /  current scope
+scopeEntry *getInnerScope();
+
+// Searches entire scope stack for symbol, inner --> outer
+astnode *searchScopeStack(char *symbol, int symbol_namespace);
 
 #endif // SYMBOLTABLE_H

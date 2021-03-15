@@ -153,3 +153,93 @@ int addTableEntry(symbolTable *sym_table, astnode *sym_entry, int replace) {
     return 1;
 }
 
+// Scope Stack Functions
+// ----------------------
+
+// Scope stack for program
+static scopeStack *scope_stack;
+
+// Initializes Scope Stack with File Scope
+// Run once at start of parser
+void initScopeStack() {
+    // Creates stack
+    if((scope_stack = calloc(1,sizeof(scopeStack))) == NULL) {
+        // ERROR - unable to create new scope stack
+        return;
+    } else {
+        // Creates file scope
+        createNewScope(FILE_SCOPE);
+    }
+
+    scope_stack->innermost_scope = NULL;
+    scope_stack->outermost_scope = NULL;
+}
+
+// Creates new scope and adds to stack
+void createNewScope(int scope_type) {
+    // Creates new scope
+    scopeEntry *new_scope;
+    if((new_scope = calloc(1,sizeof(scopeEntry))) == NULL) {
+        // ERROR - unable to create new scope
+        return;
+    }
+
+    new_scope->scope = scope_type;
+
+    // Creates symbol tables for each namespace
+    for(int i = 0; i < 3; i++) {
+        new_scope->sym_tables[i] = createTable();
+    }
+
+    // Adds to scope stack
+    new_scope->scope_up = scope_stack->innermost_scope;
+    scope_stack->innermost_scope = new_scope;
+    if(scope_stack->outermost_scope == NULL) {
+        scope_stack->outermost_scope = new_scope;
+    }
+}
+
+// Deletes innermost scope
+void deleteInnerScope() {
+    // Checks for empty stack
+    if(scope_stack->innermost_scope == NULL) {
+        // ERROR - Trying to delete empty stack
+    }
+
+    // Frees symbol tables of namespaces
+    for(int i = 0; i < 3; i++) {
+        free(scope_stack->innermost_scope->sym_tables[i]);
+    }
+
+    // Updates new inner scope and frees old one
+    scopeEntry *new_inner_scope = scope_stack->innermost_scope->scope_up;
+    free(scope_stack->innermost_scope);
+    scope_stack->innermost_scope = new_inner_scope;
+
+    // Checks if table now empty
+    if(new_inner_scope == NULL) {
+        scope_stack->outermost_scope = NULL;
+    }
+}
+
+// Returns innermost /  current scope
+scopeEntry *getInnerScope() {
+    return scope_stack->innermost_scope;
+}
+
+// Searches entire scope stack for symbol, inner --> outer
+astnode *searchScopeStack(char *symbol, int symbol_namespace) {
+    astnode *symbol_node;
+    for(scopeEntry *curr_scope = scope_stack->innermost_scope; curr_scope != NULL; curr_scope = curr_scope->scope_up) {
+        // Searches given namespace in current scope
+        symbol_node = searchTable(curr_scope->sym_tables[symbol_namespace], symbol);
+
+        // Checks if symbol was found
+        if(symbol_node != NULL) {
+            return symbol_node;
+        }
+    }
+
+    return NULL;
+}
+
