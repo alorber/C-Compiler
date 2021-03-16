@@ -46,6 +46,14 @@
 %type<node> assignment_expr expr
 %type<op> assignment_op
 %type<op> '=' '<' '>' '!' '~' '(' ')' '[' ']' '.'
+%type<node> decl_or_fnc_def declaration decl_specifier init_decl_list init_decl
+%type<node> storage_class_specifier type_specifier struct_union_specifier
+%type<node> struct_union struct_decl_list struct_decl spec_qual_list 
+%type<node> struct_declarator_list struct_declarator enum_specifier type_qualifier
+%type<node> fnc_specifier declarator dir_declarator pointer type_qualifier_list
+%type<node> type_name abstr_declarator dir_abstr_declarator typedef_name
+%type<node> initializer fnc_def compound_stmt decl_or_stmt_list decl_or_stmt
+%type<node> statement
 
 /* Operator Precedence & Associativity */
 /* From cpp website */
