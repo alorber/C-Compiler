@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <string.h>
 #include "numType.h"
+#include "symbol_table.h"
 
 extern int yylex();
 
@@ -22,8 +23,15 @@ enum nodetype {
     IDENT_TYPE,
     STRING_TYPE,
     CHARLIT_TYPE,
+    FUNCTION_CALL_TYPE,
+    EXPR_LIST_TYPE,
+    DECL_SPEC_TYPE,
+    SCALAR_TYPE,
+    POINTER_TYPE,
+    ARRAY_TYPE,
     FUNCTION_TYPE,
-    EXPR_LIST_TYPE
+    STRUCT_UNION_TYPE,
+    SYM_ENTRY_TYPE
 };
 
 // --------------------
@@ -86,6 +94,30 @@ typedef struct astnode_argument {
 // Declaration Nodes
 // -----------------
 
+// Enum of possible storage classes
+enum storage_class_specifier {
+    AUTO_SC = 1,
+    REGISTER_SC,
+    EXTERN_SC,
+    STATIC_SC,
+    UNKNOWN_SC
+};
+
+// Enum of possible type qualifiers
+enum type_qualifier {
+    NONE_TQ = 1,
+    CONST_TQ,
+    VOLATILE_TQ,
+    RESTRICT_TQ
+};
+
+typedef struct astnode_decl_specifier {
+    astnode *type_specifier;
+    int storage_class;  // Using storage_class_specifier enum
+    int type_qual;      // Using type_qualifier enum
+    int is_inline;      // Function specifier (1 = true)
+} astnode_decl_specifier;
+
 // Type Nodes
 // ----------
 
@@ -100,14 +132,15 @@ enum scalar_types {
     FLOAT_ST,
     DOUBLE_ST,
     LONG_DOUBLE_ST,
-    BOOL_ST
+    BOOL_ST,
+    UNKNOWN_ST
 };
 
 // Enum for signed-ness of scalar type
 enum scalar_sign {
     SIGNED_SS = 1,
     UNSIGNED_SS,
-    UNKNOWN
+    UNKNOWN_SS
 };
 
 // Scalar Type
@@ -144,27 +177,11 @@ typedef struct astnode_struct_union {
 // Symbol Table Nodes
 // ------------------
 
-// Enum of possible storage classes
-enum storage_class_specifier {
-    AUTO_SC = 1,
-    REGISTER_SC,
-    EXTERN_SC,
-    STATIC_SC
-};
-
-// Enum of possible type qualifiers
-enum type_qualifier {
-    NONE_TQ = 1,
-    CONST_TQ,
-    VOLATILE_TQ,
-    RESTRICT_TQ
-};
-
 // Variable
 typedef struct astnode_ident_var {
     astnode *var_type;      // Type of variable
-    int storage_class;      // Storage Class enum
-    int type_qual;          // Type Qualifier enum
+    int storage_class;      // Storage Class (storage_class_specifier enum)
+    int type_qual;          // Type Qualifier (type_qualifier enum)
     int stack_frame_offset; // Offset within stack frame (AUTO storage class only)
 } astnode_ident_var;
 
@@ -264,6 +281,7 @@ typedef struct astnode {
         astnode_argument ast_expr_list_head;
 
         // Declaration Nodes
+        astnode_decl_specifier ast_decl_spec;
 
         // Type Nodes
         astnode_scalar ast_scalar;
@@ -281,6 +299,9 @@ typedef struct astnode {
 //      AST Functions
 // -------------------------
 
+// Expression Nodes
+// -----------------
+
 astnode* allocate_node_mem();
 astnode* create_unary_node(int op, astnode *expr); 
 astnode* create_binary_node(int op, astnode *left, astnode *right); 
@@ -296,5 +317,26 @@ astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument);
 
 // Helper function to create number node with value of 1 (for ++ & --)
 astnode* create_num_one_node();
+
+// Declaration Nodes
+// -----------------
+
+// Creates declaration specifier node
+astnode *create_decl_spec_node(astnode* type_spec, int storage_class, int type_qual);
+
+// Sets decl_spec_node function specifier to 'inline'
+void set_decl_spec_node_inline(astnode *decl_spec);
+
+// Merges declarator specifiers
+// Adds updates from "addition" to "decl_spec" and frees "addition"
+astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec);
+
+// Merges declaration specifiers with declarator list
+astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list);
+
+// Type Nodes
+// ----------
+
+astnode *create_scalar_node(int scalar_type, int is_signed);
 
 #endif // ASTFUNCTIONS_H

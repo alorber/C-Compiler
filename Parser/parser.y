@@ -49,7 +49,8 @@
 %type<node> decl_or_fnc_def declaration decl_specifier init_decl_list init_decl
 %type<node> storage_class_specifier type_specifier struct_union_specifier
 %type<node> struct_union struct_decl_list struct_decl spec_qual_list 
-%type<node> struct_declarator_list struct_declarator enum_specifier type_qualifier
+%type<node> struct_declarator_list struct_declarator enum_specifier 
+%type<op> type_qualifier
 %type<node> fnc_specifier declarator dir_declarator pointer type_qualifier_list
 %type<node> type_name abstr_declarator dir_abstr_declarator typedef_name
 %type<node> initializer fnc_def compound_stmt decl_or_stmt_list decl_or_stmt
@@ -221,17 +222,21 @@ decl_or_fnc_def: declaration    {}
                ;
 
 declaration: decl_specifier ';'                   {}
-           | decl_specifier init_decl_list ';'    {}
+           | decl_specifier init_decl_list ';'    {$$ = merge_spec_decl_list($1,$2);}
            ;
 
-decl_specifier: storage_class_specifier                     {}
-              | storage_class_specifier decl_specifier      {}
-              | type_specifier                              {}
-              | type_specifier decl_specifier               {}
-              | type_qualifier                              {}
-              | type_qualifier decl_specifier               {}
-              | fnc_specifier                               {}
-              | fnc_specifier decl_specifier                {}
+decl_specifier: storage_class_specifier                     {$$ = $1;}
+              | storage_class_specifier decl_specifier      {$$ = merge_decl_spec_nodes($1,$2);}
+              | type_specifier                              {$$ = create_decl_spec_node($1,UNKNOWN_SC,NONE_TQ);}
+              | type_specifier decl_specifier               {astnode *type_spec = create_decl_spec_node($1,NULL,NONE_TQ);
+                                                             $$ = merge_decl_spec_nodes(type_spec, $2);}
+              | type_qualifier                              {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,$1);}
+              | type_qualifier decl_specifier               {astnode *type_qual = create_decl_spec_node(NULL,UNKNOWN_SC,$1);
+                                                             $$ = merge_decl_spec_nodes(type_qual,$2);}
+              | fnc_specifier                               {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,NONE_TQ);
+                                                             set_decl_spec_node_inline($$);}
+              | fnc_specifier decl_specifier                {$$ = $1;
+                                                             set_decl_spec_node_inline($$);}
               ;
 
 init_decl_list: init_decl                       {}
@@ -244,26 +249,31 @@ init_decl: declarator                   {}
          ;
 
 storage_class_specifier: TYPEDEF   {}
-                       | EXTERN    {}
-                       | STATIC    {}
-                       | AUTO      {}
-                       | REGISTER  {}
+                       | EXTERN    {$$ = create_decl_spec_node(NULL,EXTERN_SC,NONE_TQ);}
+                       | STATIC    {$$ = create_decl_spec_node(NULL,STATIC_SC,NONE_TQ);}
+                       | AUTO      {$$ = create_decl_spec_node(NULL,AUTO_SC,NONE_TQ);}
+                       | REGISTER  {$$ = create_decl_spec_node(NULL,REGISTER_SC,NONE_TQ);}
                        ;
 
-type_specifier: VOID                    {}
-              | CHAR                    {}
-              | SHORT                   {}
-              | INT                     {}
-              | LONG                    {}
-              | FLOAT                   {}
-              | DOUBLE                  {}
-              | SIGNED                  {}
-              | UNSIGNED                {}
-              | BOOL                    {}
-              | COMPLEX                 {}
-              | struct_union_specifier  {}
-              | enum_specifier          {}
-              | typedef_name            {}
+type_specifier: VOID                    {$$ = create_scalar_node(VOID_ST, UNKNOWN_SS);}
+              | CHAR                    {$$ = create_scalar_node(CHAR_ST, UNKNOWN_SS);}
+              | SHORT                   {$$ = create_scalar_node(SHORT_ST, UNKNOWN_SS);}
+              | SHORT INT               {$$ = create_scalar_node(SHORT_ST, UNKNOWN_SS);}
+              | INT                     {$$ = create_scalar_node(INT_ST, UNKNOWN_SS);}
+              | LONG                    {$$ = create_scalar_node(LONG_ST, UNKNOWN_SS);}
+              | LONG INT                {$$ = create_scalar_node(LONG_ST, UNKNOWN_SS);}
+              | LONG LONG               {$$ = create_scalar_node(LONG_LONG_ST, UNKNOWN_SS);}
+              | LONG LONG INT           {$$ = create_scalar_node(LONG_LONG_ST, UNKNOWN_SS);}
+              | FLOAT                   {$$ = create_scalar_node(FLOAT_ST, UNKNOWN_SS);}
+              | DOUBLE                  {$$ = create_scalar_node(DOUBLE_ST, UNKNOWN_SS);}
+              | LONG DOUBLE             {$$ = create_scalar_node(LONG_DOUBLE_ST, UNKNOWN_SS);}
+              | SIGNED                  {$$ = create_scalar_node(UNKNOWN_ST, SIGNED_SS);}
+              | UNSIGNED                {$$ = create_scalar_node(UNKNOWN_ST, UNSIGNED_SS);}
+              | BOOL                    {$$ = create_scalar_node(BOOL_ST, UNKNOWN_SS);}
+              | COMPLEX                 {/* Not supported currently */}
+              | struct_union_specifier  {$$ = $1;}
+              | enum_specifier          {$$ = $1;}
+              | typedef_name            {$$ = $1;}
               ;
 
 struct_union_specifier: struct_union '{' struct_decl_list '}'           {}
@@ -298,12 +308,12 @@ struct_declarator: declarator   {}
 
 enum_specifier: ; /* Enums aren't supported in this compiler */
 
-type_qualifier: CONST       {}
-              | RESTRICT    {}
-              | VOLATILE    {}
+type_qualifier: CONST       {$$ = CONST_TQ;}
+              | RESTRICT    {$$ = RESTRICT_TQ;}
+              | VOLATILE    {$$ = VOLATILE_TQ;}
               ;
 
-fnc_specifier: INLINE   {}
+fnc_specifier: INLINE   {/* Nothing needs to be done */}
              ;
 
 declarator: dir_declarator           {}
@@ -570,7 +580,7 @@ void print_ast(astnode *node, int num_indents) {
 
             break;
 
-        case FUNCTION_TYPE:
+        case FUNCTION_CALL_TYPE:
             fprintf(stdout, "FNCALL, %i arguments\n", node->ast_fnc_call.num_arguments);
 
             // Prints function name

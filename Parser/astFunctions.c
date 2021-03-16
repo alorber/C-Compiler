@@ -4,6 +4,7 @@
 
 #include "astFunctions.h"
 
+// -------------
 // AST Functions
 // -------------
 
@@ -19,6 +20,9 @@ astnode* allocate_node_mem() {
 
     return tmp_node;
 }
+
+// Expression Nodes
+// ----------------
 
 // The following node functions set the type and members of the created node
 //  and then return it.
@@ -96,7 +100,7 @@ astnode* create_char_node(char *charlit) {
 
 astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list) {
     astnode *fnc_call_node = allocate_node_mem();
-    fnc_call_node->node_type = FUNCTION_TYPE;
+    fnc_call_node->node_type = FUNCTION_CALL_TYPE;
     fnc_call_node->ast_fnc_call.function_name = function_name;
     fnc_call_node->ast_fnc_call.expr_list_head = expr_list;
     
@@ -165,3 +169,84 @@ astnode* create_num_one_node() {
 
     return num_one;
 }
+
+// Declaration Nodes
+// -----------------
+
+// Creates declaration specifier node
+astnode *create_decl_spec_node(astnode* type_spec, int storage_class, int type_qual) {
+    astnode *decl_spec = allocate_node_mem();
+    decl_spec->node_type = DECL_SPEC_TYPE;
+    decl_spec->ast_decl_spec.type_specifier = type_spec;
+    decl_spec->ast_decl_spec.storage_class = storage_class;
+    decl_spec->ast_decl_spec.type_qual = type_qual;
+    decl_spec->ast_decl_spec.is_inline = 0;
+
+    return decl_spec;
+}
+
+// Sets decl_spec_node function specifier to 'inline'
+void set_decl_spec_node_inline(astnode *decl_spec) {
+    decl_spec->ast_decl_spec.is_inline = 1;
+}
+
+// Merges declarator specifiers
+// Adds updates from "addition" to "decl_spec" and frees "addition"
+astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec) {
+    // Only one field in addition will be filled, so checks which field
+    // Checks type specifier
+    if(addition->ast_decl_spec.type_specifier != NULL) {
+        // Checks that decl_spec has no type specifier
+        if(decl_spec->ast_decl_spec.type_specifier != NULL) {
+            // ERROR
+        } else {
+            decl_spec->ast_decl_spec.type_specifier = addition->ast_decl_spec.type_specifier;
+        }
+    }
+    // Checks storage class
+    else if(addition->ast_decl_spec.storage_class != UNKNOWN_SC) {
+        // Checks that decl_spec has no storage class
+        if(decl_spec->ast_decl_spec.storage_class != UNKNOWN_SC) {
+            // ERROR
+        } else {
+            decl_spec->ast_decl_spec.storage_class = addition->ast_decl_spec.storage_class;
+        }
+    }
+    // Checks type qualifier
+    else if(addition->ast_decl_spec.type_qual != NONE_TQ) {
+        // Checks that decl_spec has no type qualifier
+        if(decl_spec->ast_decl_spec.type_qual != NONE_TQ) {
+            // ERROR
+        } else {
+            decl_spec->ast_decl_spec.type_qual = addition->ast_decl_spec.type_qual;
+        }
+    }
+    // Checks inline
+    else if(addition->ast_decl_spec.is_inline == 1) {
+        decl_spec->ast_decl_spec.is_inline = 1;
+    }
+
+    // Frees addition
+    free(addition);
+
+    return decl_spec;
+}
+
+// Merges declaration specifiers with declarator list
+astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list) {
+
+}
+
+// Type Nodes
+// ----------
+
+astnode *create_scalar_node(int scalar_type, int is_signed) {
+    astnode *scalar_node = allocate_node_mem();
+    scalar_node->node_type = SCALAR_TYPE;
+    scalar_node->ast_scalar.scalar_type = scalar_type;
+    scalar_node->ast_scalar.is_signed = is_signed;
+
+    return scalar_node;
+}
+
+
