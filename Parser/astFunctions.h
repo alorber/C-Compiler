@@ -86,14 +86,59 @@ typedef struct astnode_argument {
 // Declaration Nodes
 // -----------------
 
-typedef struct astnode_scalar {
+// Type Nodes
+// ----------
 
+// Enum of Scalar types
+enum scalar_types {
+    VOID_ST = 1,
+    CHAR_ST,
+    SHORT_ST,
+    INT_ST,
+    LONG_ST,
+    LONG_LONG_ST,
+    FLOAT_ST,
+    DOUBLE_ST,
+    LONG_DOUBLE_ST,
+    BOOL_ST
+};
+
+// Enum for signed-ness of scalar type
+enum scalar_sign {
+    SIGNED_SS = 1,
+    UNSIGNED_SS,
+    UNKNOWN
+};
+
+// Scalar Type
+typedef struct astnode_scalar {
+    int scalar_type;  // Type of scalar (Scalar_type enum above)
+    int is_signed;    // Whether scalar is signed (scalar_sign enum above)
 } astnode_scalar;
 
+// Pointer Type
 typedef struct astnode_pointer {
-
+    astnode *pointer_type;  // Type of pointer
+    // TODO: Add type qualifier
 } astnode_pointer;
 
+// Array Type
+typedef struct astnode_array {
+    int arr_size;       // Size of array
+    astnode *arr_type;  // Type of array
+} astnode_array;
+
+// Function Type
+typedef struct astnode_function {
+    int num_args;           // Number of arguments
+    astnode *return_type;   // Return type
+    astnode **arg_types;    // Argument types
+} astnode_function;
+
+// Struct & Union Type
+typedef struct astnode_struct_union {
+
+} astnode_struct_union;
 
 
 // Symbol Table Nodes
@@ -117,6 +162,7 @@ enum type_qualifier {
 
 // Variable
 typedef struct astnode_ident_var {
+    astnode *var_type;      // Type of variable
     int storage_class;      // Storage Class enum
     int type_qual;          // Type Qualifier enum
     int stack_frame_offset; // Offset within stack frame (AUTO storage class only)
@@ -126,7 +172,7 @@ typedef struct astnode_ident_var {
 typedef struct astnode_ident_fn_name {
     int storage_class;      // Storage Class enum
     astnode *return_type;   // Return Type
-    astnode *arg_types;     // Argument types
+    astnode **arg_types;     // Argument types
     int is_inline;          // Whether function was declared as inline (1 = yes)
     int is_defined;         // Whether function definition has been seen (1 = yes)
 } astnode_ident_fn_name;
@@ -200,9 +246,10 @@ typedef struct astnode_sym_table_entry {
     };
 } astnode_sym_table_entry;
 
-
+// Main AST Node Struct
 typedef struct astnode {
     int node_type;
+
     // Union of possible nodes
     union {
         // Expression Nodes
@@ -217,6 +264,13 @@ typedef struct astnode {
         astnode_argument ast_expr_list_head;
 
         // Declaration Nodes
+
+        // Type Nodes
+        astnode_scalar ast_scalar;
+        astnode_pointer ast_pointer;
+        astnode_array ast_array;
+        astnode_function ast_function;
+        astnode_struct_union ast_struct_union;
 
         // Symbol Table Node
         astnode_sym_table_entry ast_sym_entry;
