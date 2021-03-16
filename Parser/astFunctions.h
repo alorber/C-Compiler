@@ -331,7 +331,13 @@ void set_decl_spec_node_inline(astnode *decl_spec);
 // Adds updates from "addition" to "decl_spec" and frees "addition"
 astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec);
 
-// Merges declaration specifiers with declarator list
+// Creates declarator list
+astnode *create_decl_list(astnode *decl);
+
+// Adds declarator to declarator list
+astnode *add_decl_to_list(astnode *decl_list, astnode *decl);
+
+// Merges declarator specifiers with declarator list
 astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list);
 
 // Type Nodes

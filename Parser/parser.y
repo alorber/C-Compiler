@@ -222,7 +222,8 @@ decl_or_fnc_def: declaration    {}
                ;
 
 declaration: decl_specifier ';'                   {}
-           | decl_specifier init_decl_list ';'    {$$ = merge_spec_decl_list($1,$2);}
+           | decl_specifier init_decl_list ';'    {$$ = merge_spec_decl_list($1,$2);
+                                                   /* Add to symbol table */}
            ;
 
 decl_specifier: storage_class_specifier                     {$$ = $1;}
@@ -235,17 +236,16 @@ decl_specifier: storage_class_specifier                     {$$ = $1;}
                                                              $$ = merge_decl_spec_nodes(type_qual,$2);}
               | fnc_specifier                               {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,NONE_TQ);
                                                              set_decl_spec_node_inline($$);}
-              | fnc_specifier decl_specifier                {$$ = $1;
+              | fnc_specifier decl_specifier                {$$ = $2;
                                                              set_decl_spec_node_inline($$);}
               ;
 
-init_decl_list: init_decl                       {}
-              | init_decl_list ',' init_decl    {}
+init_decl_list: init_decl                       {$$ = create_decl_list($1);}
+              | init_decl_list ',' init_decl    {$$ = add_decl_to_list($1,$2);}
               ;
 
-init_decl: declarator                   {}
-         /*  Initialized declarations not supported */
-         | declarator '=' initializer   {} 
+init_decl: declarator                   {$$ = $1;}
+         | declarator '=' initializer   {/*  Initialized declarations not supported */} 
          ;
 
 storage_class_specifier: TYPEDEF   {}
@@ -289,21 +289,24 @@ struct_decl_list: struct_decl                    {}
                 | struct_decl_list struct_decl   {}
                 ;
 
-struct_decl: spec_qual_list ';'                     {}
-           | spec_qual_list struct_declarator_list ';'    {}
+struct_decl: spec_qual_list ';'                         {}
+           | spec_qual_list struct_declarator_list ';'  {$$ = merge_spec_decl_list($1,$2);
+                                                         /* Add to struct & union */}
            ;
 
-spec_qual_list: type_specifier                  {}
-              | type_specifier spec_qual_list   {}
-              | type_qualifier                  {}
-              | type_qualifier spec_qual_list   {}
+spec_qual_list: type_specifier                  {$$ = create_decl_spec_node($1,UNKNOWN_SC,NONE_TQ);}
+              | type_specifier spec_qual_list   {astnode *type_spec = create_decl_spec_node($1,NULL,NONE_TQ);
+                                                $$ = merge_decl_spec_nodes(type_spec, $2);}
+              | type_qualifier                  {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,$1);}
+              | type_qualifier spec_qual_list   {astnode *type_qual = create_decl_spec_node(NULL,UNKNOWN_SC,$1);
+                                                $$ = merge_decl_spec_nodes(type_qual,$2);}
               ;
 
-struct_declarator_list: struct_declarator                             {}
-                      | struct_declarator_list ',' struct_declarator  {}
+struct_declarator_list: struct_declarator                             {$$ = create_decl_list($1);}
+                      | struct_declarator_list ',' struct_declarator  {$$ = add_decl_to_list($1,$2);}
                       ;
 
-struct_declarator: declarator   {}
+struct_declarator: declarator   {$$ = $1;}
                  ; /* Bit fields not supported in this compiler */
 
 enum_specifier: ; /* Enums aren't supported in this compiler */
@@ -316,7 +319,7 @@ type_qualifier: CONST       {$$ = CONST_TQ;}
 fnc_specifier: INLINE   {/* Nothing needs to be done */}
              ;
 
-declarator: dir_declarator           {}
+declarator: dir_declarator           {$$ = $1;}
           | pointer dir_declarator   {}
           ;
 
