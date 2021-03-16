@@ -196,11 +196,20 @@ astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec) {
     // Only one field in addition will be filled, so checks which field
     // Checks type specifier
     if(addition->ast_decl_spec.type_specifier != NULL) {
-        // Checks that decl_spec has no type specifier
-        if(decl_spec->ast_decl_spec.type_specifier != NULL) {
-            // ERROR
-        } else {
+        // Checks which field is updated
+        if(decl_spec->ast_decl_spec.type_specifier == NULL) {
             decl_spec->ast_decl_spec.type_specifier = addition->ast_decl_spec.type_specifier;
+        }
+        else if(decl_spec->ast_decl_spec.type_specifier->ast_scalar.scalar_type == UNKNOWN_ST
+        && addition->ast_decl_spec.type_specifier->ast_scalar.scalar_type != UNKNOWN_ST) {
+            decl_spec->ast_decl_spec.type_specifier->ast_scalar.scalar_type = addition->ast_decl_spec.type_specifier->ast_scalar.scalar_type;
+        } 
+        else if(decl_spec->ast_decl_spec.type_specifier->ast_scalar.is_signed == UNKNOWN_SS
+        && addition->ast_decl_spec.type_specifier->ast_scalar.is_signed != UNKNOWN_SS) {
+            decl_spec->ast_decl_spec.type_specifier->ast_scalar.is_signed = addition->ast_decl_spec.type_specifier->ast_scalar.is_signed;    
+        } 
+        else {
+            // ERROR
         }
     }
     // Checks storage class
