@@ -24,7 +24,7 @@ enum nodetype {
     STRING_TYPE,
     CHARLIT_TYPE,
     FUNCTION_CALL_TYPE,
-    EXPR_LIST_TYPE,
+    NODE_LIST_TYPE,
     DECL_SPEC_TYPE,
     TYPE_NAME_TYPE,
     SCALAR_TYPE,
@@ -86,11 +86,11 @@ typedef struct astnode_function_call {
     struct astnode *expr_list_head; // List of arguments
 } astnode_function_call;
 
-// Function Argument
-typedef struct astnode_argument {
-    struct astnode *expr;
-    struct astnode_argument *next;
-} astnode_argument;
+// Node List - Used for function argument, decl_stmt_list
+typedef struct astnode_list_entry {
+    struct astnode *node;
+    struct astnode_node_list *next;
+} astnode_list_entry;
 
 // Declaration Nodes
 // -----------------
@@ -284,7 +284,7 @@ typedef struct astnode {
         astnode_string ast_string;
         astnode_char ast_charlit;
         astnode_function_call ast_fnc_call;
-        astnode_argument ast_expr_list_head;
+        astnode_list_entry ast_node_list_head;
 
         // Declaration Nodes
         astnode_decl_specifier ast_decl_spec;

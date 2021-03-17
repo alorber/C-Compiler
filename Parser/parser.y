@@ -116,8 +116,8 @@ function_call: postfix_expr '(' expr_list ')'   {$$ = create_fnc_call_node($1,$3
              | postfix_expr '(' ')'             {$$ = create_fnc_call_node($1,NULL);}
              ;
 
-expr_list: assignment_expr                  {$$ = init_expr_list($1);}
-         | expr_list ',' assignment_expr    {$$ = add_argument_to_list($1, $3);}
+expr_list: assignment_expr                  {$$ = init_node_list($1);}
+         | expr_list ',' assignment_expr    {$$ = add_node_to_list($1, $3);}
          ;
 
 unary_expr: postfix_expr                {$$ = $1;}
@@ -223,7 +223,7 @@ decl_or_fnc_def: declaration    {}
                | fnc_def        {}
                ;
 
-declaration: decl_specifier ';'                   {}
+declaration: decl_specifier ';'                   {$$ = $1;}
            | decl_specifier init_decl_list ';'    {$$ = merge_spec_decl_list($1,$2);
                                                    /* Add to symbol table */}
            ;
@@ -242,8 +242,8 @@ decl_specifier: storage_class_specifier                     {$$ = $1;}
                                                              set_decl_spec_node_inline($$);}
               ;
 
-init_decl_list: init_decl                       {$$ = create_decl_list($1);}
-              | init_decl_list ',' init_decl    {$$ = add_decl_to_list($1,$2);}
+init_decl_list: init_decl                       {$$ = init_node_list($1);}
+              | init_decl_list ',' init_decl    {$$ = add_node_to_list($1,$3);}
               ;
 
 init_decl: declarator                   {$$ = $1;}
@@ -304,8 +304,8 @@ spec_qual_list: type_specifier                  {$$ = create_decl_spec_node($1,U
                                                 $$ = merge_decl_spec_nodes(type_qual,$2);}
               ;
 
-struct_declarator_list: struct_declarator                             {$$ = create_decl_list($1);}
-                      | struct_declarator_list ',' struct_declarator  {$$ = add_decl_to_list($1,$2);}
+struct_declarator_list: struct_declarator                             {$$ = init_node_list($1);}
+                      | struct_declarator_list ',' struct_declarator  {$$ = add_node_to_list($1,$3);}
                       ;
 
 struct_declarator: declarator   {$$ = $1;}
@@ -371,29 +371,31 @@ dir_abstr_declarator: '(' abstr_declarator ')'              {$$ = $2;}
                                                             }
                     ;
 
-typedef_name: IDENT   {}
+typedef_name: IDENT   {/* Should this return value from symbol table? */}
             ;
 
-initializer: assignment_expr   {} 
+initializer: assignment_expr   {$$ = $1;} 
            /*  Initialized declarations not supported */
            ;
 
 fnc_def: decl_specifier declarator compound_stmt    {}
        ;
     
-compound_stmt: '{' decl_or_stmt_list '}'    {}
+compound_stmt: '{'                      {/* Create new scope */
+                                         createNewScope(FUNCTION_SCOPE);} 
+                decl_or_stmt_list '}'   {}
              ;
 
-decl_or_stmt_list: decl_or_stmt                     {}
-                 | decl_or_stmt_list decl_or_stmt   {}
+decl_or_stmt_list: decl_or_stmt                     {$$ = init_node_list($1);}
+                 | decl_or_stmt_list decl_or_stmt   {$$ = add_node_to_list($1,$2);}
                  ;
 
-decl_or_stmt: declaration   {}
-            | statement     {}
+decl_or_stmt: declaration   {$$ = $1;}
+            | statement     {$$ = $1;}
             ;
 
-statement: compound_stmt    {}
-         | expr ';'         {}
+statement: compound_stmt    {$$ = $1;}
+         | expr ';'         {$$ = $1;}
          ;
 
 
@@ -604,11 +606,11 @@ void print_ast(astnode *node, int num_indents) {
             }
 
             // Prints arguments
-            astnode_argument *curr_argument = &(node->ast_fnc_call.expr_list_head->ast_expr_list_head);
+            astnode_argument *curr_argument = &(node->ast_fnc_call.expr_list_head->ast_node_list_head);
             for(int arg_number = 1; curr_argument != NULL; arg_number++, curr_argument = curr_argument->next) {
                 print_indents(num_indents);
                 fprintf(stdout, "arg #%i=\n", arg_number);
-                print_ast(curr_argument->expr, num_indents+1);
+                print_ast(curr_argument->node, num_indents+1);
             }
             
             break;

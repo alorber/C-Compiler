@@ -110,7 +110,7 @@ astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list) {
     } else {
         int num_arguments = 1; 
 
-        astnode_argument *curr_argument = expr_list->ast_expr_list_head.next;
+        astnode_list_entry *curr_argument = expr_list->ast_node_list_head.next;
         while(curr_argument != NULL) {
             num_arguments++;
             curr_argument = curr_argument->next;
@@ -122,40 +122,40 @@ astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list) {
 }
 
 // Creates an expression list
-astnode* init_expr_list(astnode* expr_list_head) {
-    astnode *expr_list_node = allocate_node_mem();
-    expr_list_node->node_type = EXPR_LIST_TYPE;
-    expr_list_node->ast_expr_list_head.expr = expr_list_head;
-    expr_list_node->ast_expr_list_head.next = NULL;
+astnode* init_node_list(astnode* node_list_head) {
+    astnode *node_list_node = allocate_node_mem();
+    node_list_node->node_type = NODE_LIST_TYPE;
+    node_list_node->ast_node_list_head.node = node_list_head;
+    node_list_node->ast_node_list_head.next = NULL;
 
-    return expr_list_node;
+    return node_list_node;
 }
 
 // Adds new argument node to expression list
-astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument) {
+astnode* add_node_to_list(astnode *node_list, astnode *new_argument) {
     // Creates new argument node
-    astnode_argument *arg_node;
+    astnode_list_entry *list_node;
     
     // Checks for error
-    if((arg_node = malloc(sizeof(astnode_argument))) == NULL) {
-        fprintf(stderr, "ERROR: Unable to allocate memory for AST Argument node.\n");
+    if((list_node = malloc(sizeof(astnode_list_entry))) == NULL) {
+        fprintf(stderr, "ERROR: Unable to allocate memory for AST node.\n");
         exit(-1);
     }
 
-    arg_node->expr = new_argument;
-    arg_node->next = NULL;
+    list_node->node = new_argument;
+    list_node->next = NULL;
 
-    // Get last argument in list
-    astnode_argument *curr_argument = &(expr_list->ast_expr_list_head);
-    while(curr_argument->next != NULL) {
-        curr_argument = curr_argument->next;
+    // Get last node in list
+    astnode_list_entry *curr_node = &(node_list->ast_node_list_head);
+    while(curr_node->next != NULL) {
+        curr_node = curr_node->next;
     }
     
     // Add new argument to list
-    curr_argument->next = arg_node;
+    curr_node->next = list_node;
 
     // Returns head of list
-    return expr_list;
+    return node_list;
 }
 
 // Creates number node with value of 1
@@ -239,6 +239,16 @@ astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec) {
     free(addition);
 
     return decl_spec;
+}
+
+// Creates declarator list
+astnode *create_decl_list(astnode *decl) {
+
+}
+
+// Adds declarator to declarator list
+astnode *add_decl_to_list(astnode *decl_list, astnode *decl) {
+
 }
 
 // Merges declaration specifiers with declarator list
