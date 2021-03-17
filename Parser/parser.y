@@ -320,22 +320,22 @@ fnc_specifier: INLINE   {/* Nothing needs to be done */}
              ;
 
 declarator: dir_declarator           {$$ = $1;}
-          | pointer dir_declarator   {}
+          | pointer dir_declarator   {$$ = build_declarator($1,$2);}
           ;
 
-dir_declarator: IDENT                                {}
-                 | '(' declarator ')'                {}
+dir_declarator: IDENT                                {$$ = create_sym_table_entry($1);}
+                 | '(' declarator ')'                {$$ = $2;}
                  /* More complex array expressions not supported */
-                 | dir_declarator '[' ']'            {}
-                 | dir_declarator '[' NUMBER ']'     {}  
+                 | dir_declarator '[' ']'            {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,NULL);}
+                 | dir_declarator '[' NUMBER ']'     {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,$3.i_value);}  
                  /* Compiler assumes all function declarators are () */
-                 | dir_declarator '(' ')'            {}
+                 | dir_declarator '(' ')'            {$$ = create_arr_fnc_sym_entry($1,FUNCTION_TYPE,NULL);}
                  ;
 
-pointer: '*'                                {}
-       | '*' type_qualifier_list            {}
-       | '*' pointer                        {}
-       | '*' type_qualifier_list pointer    {}
+pointer: '*'                                {$$ = create_pointer_node(NULL,NULL);}
+       | '*' type_qualifier_list            {$$ = create_pointer_node(NULL,$2);}
+       | '*' pointer                        {$$ = create_pointer_node($2,NULL);}
+       | '*' type_qualifier_list pointer    {$$ = create_pointer_node($3,$2);}
        ;
 
 type_qualifier_list: type_qualifier                       {}

@@ -258,4 +258,158 @@ astnode *create_scalar_node(int scalar_type, int is_signed) {
     return scalar_node;
 }
 
+astnode *create_pointer_node(astnode *parent_ptr, astnode *type_qual_list) {
+    astnode *new_pointer = allocate_node_mem();
+    new_pointer->node_type = POINTER_TYPE;
+    // ADD TYPE QUALIFIER LIST
 
+    // Checks if no parent pointer (returns new pointer)
+    if(parent_ptr = NULL) {
+        return new_pointer;
+    }
+
+    // Finds last pointer in chain to add new pointer to
+    astnode *tmp_ptr =  parent_ptr;
+    for(;tmp_ptr->ast_pointer.pointer_type != NULL, tmp_ptr = tmp_ptr->ast_pointer.pointer_type);
+    tmp_ptr->ast_pointer.pointer_type = new_pointer;
+
+    return parent_ptr;
+}
+
+astnode *create_array_node(int size, astnode *type) {
+    astnode *arr_node = allocate_node_mem();
+    arr_node->node_type = ARRAY_TYPE;
+    arr_node->ast_array.arr_size = size;
+    arr_node->ast_array.arr_type = type;
+
+    return arr_node;
+}
+
+astnode *create_function_node(int num_args, astnode *return_type, astnode **arg_types) {
+    astnode *fnc_node = allocate_node_mem();
+    fnc_node->node_type = FUNCTION_TYPE;
+    fnc_node->ast_function.num_args = num_args;
+    fnc_node->ast_function.return_type = return_type;
+    fnc_node->ast_function.arg_types = arg_types;
+
+    return fnc_node;
+}
+
+// Combines pointer into declarator symbol table entry
+astnode *build_declarator(astnode *ptr, astnode *declarator) {
+    // Checks type of declarator
+    // If function -> set ptr as return type
+    if(declarator->ast_sym_entry.sym_type == FNC_NAME_TYPE) {
+        // Return type should be NULL, so no need to follow pointers
+        declarator->ast_sym_entry.ident_fnc_name.return_type = ptr;
+    } 
+    // Else -> set ptr as type
+    else {
+        astnode* tmp_node = declarator->ast_sym_entry.sym_node;
+        // Follows ptr / arr chain
+        while(1) {
+            if(tmp_node->node_type == POINTER_TYPE) {
+                // End of chain
+                if(tmp_node->ast_pointer.pointer_type == NULL) {
+                    tmp_node->ast_pointer.pointer_type = ptr;
+                    break;
+                } 
+                // Goes to next in chain
+                else {
+                    tmp_node = tmp_node->ast_pointer.pointer_type;
+                }
+            } else if(tmp_node->node_type == ARRAY_TYPE) {
+                // End of chain
+                if(tmp_node->ast_array.arr_type == NULL) {
+                    tmp_node->ast_array.arr_type = ptr;
+                    break;
+                }
+                // Goes to next in chain
+                else {
+                    tmp_node = tmp_node->ast_array.arr_type;
+                }
+            } else {
+                // ERROR
+                break;
+            }
+        }
+    }
+
+    return declarator;
+}
+
+// Symbol Table Nodes
+// ------------------
+
+// Creates a new symbol table entry, only filling symbol field
+astnode *create_sym_table_entry(char *ident) {
+    astnode *sym_entry = allocate_node_mem();
+    sym_entry->node_type = SYM_ENTRY_TYPE;
+    sym_entry->ast_sym_entry.symbol = ident;
+
+    return sym_entry;
+}
+
+// Updates a symbol table entry by adding a pointer or array node
+// Follows pointer or array chain to end
+// type_to_add parameter uses same type enum as astnode
+// arr_size parameter is only used for array nodes
+astnode *create_arr_fnc_sym_entry(astnode *sym_table_entry, int type_to_add, int arr_size) {
+    // Creates new node (checks type to create)
+    astnode *new_node;
+    if(type_to_add == ARRAY_TYPE) {
+        // Creates array node
+        new_node = create_array_node(arr_size,NULL);
+    } else if(type_to_add == FUNCTION_TYPE) {
+        // Creates function node
+        new_node = create_function_node(NULL,NULL,NULL);
+    } else {
+        // ERROR - Invalid input
+        return NULL;
+    }
+
+    // Adds to current symbol table entry
+    // Checks if needs to follow ptr / array chain
+    if(sym_table_entry->ast_sym_entry.sym_node == NULL) {
+        sym_table_entry->ast_sym_entry.sym_node = new_node;
+        // Sets symbol type
+        if(type_to_add == ARRAY_TYPE) {
+            sym_table_entry->ast_sym_entry.sym_type = VAR_TYPE;
+        } else if(type_to_add == FUNCTION_TYPE) {
+            sym_table_entry->ast_sym_entry.sym_type = FNC_NAME_TYPE;
+            sym_table_entry->ast_sym_entry.ident_fnc_name.return_type = NULL;
+        }
+    } else {
+        astnode* tmp_node = sym_table_entry->ast_sym_entry.sym_node;
+        // Follows ptr / arr chain
+        while(1) {
+            if(tmp_node->node_type == POINTER_TYPE) {
+                // End of chain
+                if(tmp_node->ast_pointer.pointer_type == NULL) {
+                    tmp_node->ast_pointer.pointer_type = new_node;
+                    break;
+                } 
+                // Goes to next in chain
+                else {
+                    tmp_node = tmp_node->ast_pointer.pointer_type;
+                }
+            } else if(tmp_node->node_type == ARRAY_TYPE) {
+                // End of chain
+                if(tmp_node->ast_array.arr_type == NULL) {
+                    tmp_node->ast_array.arr_type = new_node;
+                    break;
+                }
+                // Goes to next in chain
+                else {
+                    tmp_node = tmp_node->ast_array.arr_type;
+                }
+            } else {
+                // ERROR
+                break;
+            }
+        }
+    }
+    
+    return sym_table_entry;
+
+}

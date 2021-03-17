@@ -118,6 +118,10 @@ typedef struct astnode_decl_specifier {
     int is_inline;      // Function specifier (1 = true)
 } astnode_decl_specifier;
 
+typedef struct astnode_declarator {
+
+} astnode_declarator;
+
 // Type Nodes
 // ----------
 
@@ -253,7 +257,7 @@ typedef struct astnode_sym_table_entry {
     // Structs for possible IDENT types
     union {
         astnode_ident_var ident_var;
-        astnode_ident_fn_name fnc_name;
+        astnode_ident_fn_name ident_fnc_name;
         astnode_ident_typedef ident_typedef;
         astnode_ident_enum_const ident_enum_const;
         astnode_ident_struct_union_tag ident_struct_union_tag;
@@ -340,9 +344,28 @@ astnode *add_decl_to_list(astnode *decl_list, astnode *decl);
 // Merges declarator specifiers with declarator list
 astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list);
 
+// Combines pointer into declarator symbol table entry
+astnode *build_declarator(astnode *ptr, astnode *declarator);
+
 // Type Nodes
 // ----------
 
 astnode *create_scalar_node(int scalar_type, int is_signed);
+astnode *create_pointer_node(astnode *ptr_type, astnode *type_qual_list);
+astnode *create_array_node(int size, astnode *type);
+astnode *create_function_node(int num_args, astnode *return_type, astnode **arg_types);
+
+// Symbol Table Nodes
+// ------------------
+
+// Creates a new symbol table entry, only filling symbol field
+astnode *create_sym_table_entry(char *ident);
+
+// Updates a symbol table entry by adding a pointer or array node
+// Follows pointer or array chain to end
+// type_to_add parameter uses same type enum as astnode
+// arr_size parameter is only used for array nodes
+astnode *create_arr_fnc_sym_entry(astnode *sym_table_entry, int type_to_add, int arr_size);
+
 
 #endif // ASTFUNCTIONS_H
