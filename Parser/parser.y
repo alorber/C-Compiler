@@ -120,13 +120,14 @@ expr_list: assignment_expr                  {$$ = init_expr_list($1);}
          | expr_list ',' assignment_expr    {$$ = add_argument_to_list($1, $3);}
          ;
 
-unary_expr: postfix_expr            {$$ = $1;}
-          | PLUSPLUS unary_expr     {astnode *num_one = create_num_one_node();
-                                     $$ = simplify_compound_op('+', $2, num_one);}
-          | MINUSMINUS unary_expr   {astnode *num_one = create_num_one_node();
-                                     $$ = simplify_compound_op('-', $2, num_one);}
-          | unary_op cast_expr      {$$ = create_unary_node($1,$2);}
-          | SIZEOF unary_expr       {$$ = create_unary_node(SIZEOF,$2);}
+unary_expr: postfix_expr                {$$ = $1;}
+          | PLUSPLUS unary_expr         {astnode *num_one = create_num_one_node();
+                                        $$ = simplify_compound_op('+', $2, num_one);}
+          | MINUSMINUS unary_expr       {astnode *num_one = create_num_one_node();
+                                        $$ = simplify_compound_op('-', $2, num_one);}
+          | unary_op cast_expr          {$$ = create_unary_node($1,$2);}
+          | SIZEOF unary_expr           {$$ = create_unary_node(SIZEOF,$2);}
+          | SIZEOF '(' type_name ')'    {$$ = create_unary_node(SIZEOF,$3);}
           ;
 
 unary_op: '&'   {$$ = '&';}
@@ -137,7 +138,8 @@ unary_op: '&'   {$$ = '&';}
         | '!'   {$$ = '!';}
         ;
 
-cast_expr: unary_expr   {$$ = $1;}
+cast_expr: unary_expr                   {$$ = $1;}
+         | '(' type_name ')' cast_expr  {/* How should this be represented */}
          ;
 
 multiplicative_expr: cast_expr                           {$$ = $1;}
@@ -342,24 +344,31 @@ type_qualifier_list: type_qualifier                       {}
                    | type_qualifier_list type_qualifier   {}
                    ;
 
-type_name: spec_qual_list                       {}
-         | spec_qual_list abstr_declarator      {}
+type_name: spec_qual_list                       {$$ = create_type_name_node($1,NULL);}
+         | spec_qual_list abstr_declarator      {$$ = create_type_name_node($1,$2);}
          ;
 
-abstr_declarator: pointer                        {}
-                | dir_abstr_declarator           {}
-                | pointer dir_abstr_declarator   {}
+abstr_declarator: pointer                        {$$ = $1;}
+                | dir_abstr_declarator           {$$ = $1;}
+                | pointer dir_abstr_declarator   {$$ = build_abstract_declarator($1,$2);}
                 ;
 
-dir_abstr_declarator: '(' abstr_declarator ')'              {}
+dir_abstr_declarator: '(' abstr_declarator ')'              {$$ = $2;}
                     /* More complex array expressions not supported */
-                    | '[' ']'                               {}
-                    | dir_abstr_declarator '[' ']'          {}
-                    | '[' NUMBER ']'                        {}
-                    | dir_abstr_declarator '[' NUMBER ']'   {}
+                    | '[' ']'                               {$$ = astnode *create_array_node(NULL,NULL);}
+                    | dir_abstr_declarator '[' ']'          {$$ = astnode *create_array_node($2.i_value,$1);}
+                    | '[' NUMBER ']'                        {$$ = astnode *create_array_node($2.i_value,NULL);}
+                    | dir_abstr_declarator '[' NUMBER ']'   {$$ = astnode *create_array_node($3.i_value,$1);}
                     /* Compiler assumes all function declarators are () */
-                    | '(' ')'                               {}
-                    | dir_abstr_declarator '(' ')'          {}
+                    | '(' ')'                               {$$ = create_function_node(NULL,NULL,NULL);}
+                    | dir_abstr_declarator '(' ')'          {// Function won't work if dir_abstr_declarator is a function.
+                                                             // Isn't syntactically allowed, so checks here for error
+                                                             if($1->node_type == FUNCTION_TYPE) {
+                                                                // ERROR - Function cannot have return type of function
+                                                             } else {
+                                                                $$ = add_to_arr_ptr_chain($1, FUNCTION_TYPE);
+                                                             };
+                                                            }
                     ;
 
 typedef_name: IDENT   {}

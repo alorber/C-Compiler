@@ -26,6 +26,7 @@ enum nodetype {
     FUNCTION_CALL_TYPE,
     EXPR_LIST_TYPE,
     DECL_SPEC_TYPE,
+    TYPE_NAME_TYPE,
     SCALAR_TYPE,
     POINTER_TYPE,
     ARRAY_TYPE,
@@ -118,9 +119,10 @@ typedef struct astnode_decl_specifier {
     int is_inline;      // Function specifier (1 = true)
 } astnode_decl_specifier;
 
-typedef struct astnode_declarator {
-
-} astnode_declarator;
+typedef struct astnode_type_name {
+    astnode *spec_qual_list;
+    astnode *abstr_declarator;
+} astnode_type_name;
 
 // Type Nodes
 // ----------
@@ -286,6 +288,7 @@ typedef struct astnode {
 
         // Declaration Nodes
         astnode_decl_specifier ast_decl_spec;
+        astnode_type_name ast_type_name;
 
         // Type Nodes
         astnode_scalar ast_scalar;
@@ -347,6 +350,11 @@ astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list);
 // Combines pointer into declarator symbol table entry
 astnode *build_declarator(astnode *ptr, astnode *declarator);
 
+// Combines pointer into declarator
+astnode *build_abstract_declarator(astnode *ptr, astnode *declarator);
+
+astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl);
+
 // Type Nodes
 // ----------
 
@@ -354,6 +362,9 @@ astnode *create_scalar_node(int scalar_type, int is_signed);
 astnode *create_pointer_node(astnode *ptr_type, astnode *type_qual_list);
 astnode *create_array_node(int size, astnode *type);
 astnode *create_function_node(int num_args, astnode *return_type, astnode **arg_types);
+
+// Adds node to end of array / pointer chain
+astnode *add_to_arr_ptr_chain(astnode*parent_node, int type_to_add);
 
 // Symbol Table Nodes
 // ------------------

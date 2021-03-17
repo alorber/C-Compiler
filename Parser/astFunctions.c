@@ -246,55 +246,6 @@ astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list) {
 
 }
 
-// Type Nodes
-// ----------
-
-astnode *create_scalar_node(int scalar_type, int is_signed) {
-    astnode *scalar_node = allocate_node_mem();
-    scalar_node->node_type = SCALAR_TYPE;
-    scalar_node->ast_scalar.scalar_type = scalar_type;
-    scalar_node->ast_scalar.is_signed = is_signed;
-
-    return scalar_node;
-}
-
-astnode *create_pointer_node(astnode *parent_ptr, astnode *type_qual_list) {
-    astnode *new_pointer = allocate_node_mem();
-    new_pointer->node_type = POINTER_TYPE;
-    // ADD TYPE QUALIFIER LIST
-
-    // Checks if no parent pointer (returns new pointer)
-    if(parent_ptr = NULL) {
-        return new_pointer;
-    }
-
-    // Finds last pointer in chain to add new pointer to
-    astnode *tmp_ptr =  parent_ptr;
-    for(;tmp_ptr->ast_pointer.pointer_type != NULL, tmp_ptr = tmp_ptr->ast_pointer.pointer_type);
-    tmp_ptr->ast_pointer.pointer_type = new_pointer;
-
-    return parent_ptr;
-}
-
-astnode *create_array_node(int size, astnode *type) {
-    astnode *arr_node = allocate_node_mem();
-    arr_node->node_type = ARRAY_TYPE;
-    arr_node->ast_array.arr_size = size;
-    arr_node->ast_array.arr_type = type;
-
-    return arr_node;
-}
-
-astnode *create_function_node(int num_args, astnode *return_type, astnode **arg_types) {
-    astnode *fnc_node = allocate_node_mem();
-    fnc_node->node_type = FUNCTION_TYPE;
-    fnc_node->ast_function.num_args = num_args;
-    fnc_node->ast_function.return_type = return_type;
-    fnc_node->ast_function.arg_types = arg_types;
-
-    return fnc_node;
-}
-
 // Combines pointer into declarator symbol table entry
 astnode *build_declarator(astnode *ptr, astnode *declarator) {
     // Checks type of declarator
@@ -336,6 +287,204 @@ astnode *build_declarator(astnode *ptr, astnode *declarator) {
     }
 
     return declarator;
+}
+
+// Combines pointer into declarator
+astnode *build_abstract_declarator(astnode *ptr, astnode *declarator) {
+    astnode *tmp_node;
+    // Checks parent type
+    if(declarator->node_type == POINTER_TYPE) {
+        // Checks for empty chain
+        if(declarator->ast_pointer.pointer_type == NULL) {
+            declarator->ast_pointer.pointer_type = ptr;
+            return declarator;
+        } else {
+            tmp_node = declarator->ast_pointer.pointer_type;
+        }
+    } else if(declarator->node_type == ARRAY_TYPE) {
+        // Checks for empty chain
+        if(declarator->ast_array.arr_type == NULL) {
+            declarator->ast_array.arr_type = ptr;
+            return declarator;
+        } else {
+            tmp_node = declarator->ast_array.arr_type;
+        }
+    } else if(declarator->node_type == FUNCTION_TYPE) {
+        // Checks for empty chain
+        if(declarator->ast_function.return_type == NULL) {
+            declarator->ast_function.return_type = ptr;
+            return declarator;
+        } else {
+            tmp_node = declarator->ast_function.return_type;
+        }
+    } else {
+        // ERROR - Invalid input
+    }
+
+    // Follows ptr / arr chain
+    while(1) {
+        if(tmp_node->node_type == POINTER_TYPE) {
+            // End of chain
+            if(tmp_node->ast_pointer.pointer_type == NULL) {
+                tmp_node->ast_pointer.pointer_type = ptr;
+                break;
+            } 
+            // Goes to next in chain
+            else {
+                tmp_node = tmp_node->ast_pointer.pointer_type;
+            }
+        } else if(tmp_node->node_type == ARRAY_TYPE) {
+            // End of chain
+            if(tmp_node->ast_array.arr_type == NULL) {
+                tmp_node->ast_array.arr_type = ptr;
+                break;
+            }
+            // Goes to next in chain
+            else {
+                tmp_node = tmp_node->ast_array.arr_type;
+            }
+        } else if(tmp_node->node_type == FUNCTION_TYPE) {
+            // End of chain
+            if(tmp_node->ast_function.return_type == NULL) {
+                tmp_node->ast_function.return_type = ptr;
+                break;
+            }
+            // Goes to next in chain
+            else {
+                tmp_node = tmp_node->ast_function.return_type;
+            }
+        } else {
+            // ERROR
+            break;
+        }
+    }
+
+    return declarator;
+}
+
+astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl) {
+    astnode *type_name_node = allocate_node_mem();
+    type_name_node->node_type = TYPE_NAME_TYPE;
+    type_name_node->ast_type_name.spec_qual_list = spec_qual_list;
+    type_name_node->ast_type_name.abstr_declarator = abstr_decl;
+
+    return type_name_node;
+}
+
+// Type Nodes
+// ----------
+
+astnode *create_scalar_node(int scalar_type, int is_signed) {
+    astnode *scalar_node = allocate_node_mem();
+    scalar_node->node_type = SCALAR_TYPE;
+    scalar_node->ast_scalar.scalar_type = scalar_type;
+    scalar_node->ast_scalar.is_signed = is_signed;
+
+    return scalar_node;
+}
+
+astnode *create_pointer_node(astnode *parent_ptr, astnode *type_qual_list) {
+    astnode *new_pointer = allocate_node_mem();
+    new_pointer->node_type = POINTER_TYPE;
+    // ADD TYPE QUALIFIER LIST
+
+    // Checks if no parent pointer (returns new pointer)
+    if(parent_ptr = NULL) {
+        return new_pointer;
+    }
+
+    // Finds last pointer in chain to add new pointer to
+    astnode *tmp_ptr =  parent_ptr;
+    for(;tmp_ptr->ast_pointer.pointer_type != NULL; tmp_ptr = tmp_ptr->ast_pointer.pointer_type);
+    tmp_ptr->ast_pointer.pointer_type = new_pointer;
+
+    return parent_ptr;
+}
+
+astnode *create_array_node(int size, astnode *type) {
+    astnode *arr_node = allocate_node_mem();
+    arr_node->node_type = ARRAY_TYPE;
+    arr_node->ast_array.arr_size = size;
+    arr_node->ast_array.arr_type = type;
+
+    return arr_node;
+}
+
+astnode *create_function_node(int num_args, astnode *return_type, astnode **arg_types) {
+    astnode *fnc_node = allocate_node_mem();
+    fnc_node->node_type = FUNCTION_TYPE;
+    fnc_node->ast_function.num_args = num_args;
+    fnc_node->ast_function.return_type = return_type;
+    fnc_node->ast_function.arg_types = arg_types;
+
+    return fnc_node;
+}
+
+astnode *add_to_arr_ptr_chain(astnode *parent_node, int type_to_add) {
+    // Creates new node (checks type to create)
+    astnode *new_node;
+    if(type_to_add == FUNCTION_TYPE) {
+        // Creates function node
+        new_node = create_function_node(NULL,NULL,NULL);
+    } else if(type_to_add == POINTER_TYPE) {
+        // Creates pointer node
+        new_node = create_pointer_node(NULL,NULL);
+    } else {
+        // ERROR - Invalid input
+        return NULL;
+    }
+
+    astnode *tmp_node;
+    // Checks parent type
+    if(parent_node->node_type == POINTER_TYPE) {
+        // Checks for empty chain
+        if(parent_node->ast_pointer.pointer_type == NULL) {
+            parent_node->ast_pointer.pointer_type = new_node;
+            return parent_node;
+        } else {
+            tmp_node = parent_node->ast_pointer.pointer_type;
+        }
+    } else if(parent_node->node_type == ARRAY_TYPE) {
+        // Checks for empty chain
+        if(parent_node->ast_array.arr_type == NULL) {
+            parent_node->ast_array.arr_type = new_node;
+            return parent_node;
+        } else {
+            tmp_node = parent_node->ast_array.arr_type;
+        }
+    } else {
+        // ERROR - Invalid input
+    }
+
+    // Follows ptr / arr chain
+    while(1) {
+        if(tmp_node->node_type == POINTER_TYPE) {
+            // End of chain
+            if(tmp_node->ast_pointer.pointer_type == NULL) {
+                tmp_node->ast_pointer.pointer_type = new_node;
+                break;
+            } 
+            // Goes to next in chain
+            else {
+                tmp_node = tmp_node->ast_pointer.pointer_type;
+            }
+        } else if(tmp_node->node_type == ARRAY_TYPE) {
+            // End of chain
+            if(tmp_node->ast_array.arr_type == NULL) {
+                tmp_node->ast_array.arr_type = new_node;
+                break;
+            }
+            // Goes to next in chain
+            else {
+                tmp_node = tmp_node->ast_array.arr_type;
+            }
+        } else {
+            // ERROR
+            break;
+        }
+    }
+
+    return parent_node;
 }
 
 // Symbol Table Nodes
