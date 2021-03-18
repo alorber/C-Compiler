@@ -355,10 +355,10 @@ abstr_declarator: pointer                        {$$ = $1;}
 
 dir_abstr_declarator: '(' abstr_declarator ')'              {$$ = $2;}
                     /* More complex array expressions not supported */
-                    | '[' ']'                               {$$ = astnode *create_array_node(NULL,NULL);}
-                    | dir_abstr_declarator '[' ']'          {$$ = astnode *create_array_node($2.i_value,$1);}
-                    | '[' NUMBER ']'                        {$$ = astnode *create_array_node($2.i_value,NULL);}
-                    | dir_abstr_declarator '[' NUMBER ']'   {$$ = astnode *create_array_node($3.i_value,$1);}
+                    | '[' ']'                               {$$ = create_array_node(NULL,NULL);}
+                    | dir_abstr_declarator '[' ']'          {$$ = create_array_node($2.i_value,$1);}
+                    | '[' NUMBER ']'                        {$$ = create_array_node($2.i_value,NULL);}
+                    | dir_abstr_declarator '[' NUMBER ']'   {$$ = create_array_node($3.i_value,$1);}
                     /* Compiler assumes all function declarators are () */
                     | '(' ')'                               {$$ = create_function_node(NULL,NULL,NULL);}
                     | dir_abstr_declarator '(' ')'          {// Function won't work if dir_abstr_declarator is a function.
@@ -383,7 +383,7 @@ fnc_def: decl_specifier declarator compound_stmt    {}
     
 compound_stmt: '{'                      {/* Create new scope */
                                          createNewScope(FUNCTION_SCOPE);} 
-                decl_or_stmt_list '}'   {}
+                decl_or_stmt_list '}'   {$$ = $2;}
              ;
 
 decl_or_stmt_list: decl_or_stmt                     {$$ = init_node_list($1);}
