@@ -240,65 +240,97 @@ astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec) {
     return decl_spec;
 }
 
-// Creates declarator list
-astnode *create_decl_list(astnode *decl) {
-
-}
-
-// Adds declarator to declarator list
-astnode *add_decl_to_list(astnode *decl_list, astnode *decl) {
-
-}
-
 // Merges declaration specifiers with declarator list
+// Returns list of symbol table entries
 astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list) {
+    // Gets first declarator in list
+    astnode_list_entry *curr_list_node = &(decl_list->ast_node_list_head);
+    astnode *curr_sym_entry;  // New symbol table entry
 
+    // Builds symbol table entry list
+    int first_node = 1;  // Need to create list on first node
+    do {
+        curr_sym_entry = curr_list_node->node;
+
+        // Adds specifiers depending on declarator type
+        switch(curr_sym_entry->ast_sym_entry.sym_type) {
+            case VAR_TYPE:
+                curr_sym_entry->ast_sym_entry.ident_var.storage_class = spec->ast_decl_spec.storage_class;
+                curr_sym_entry->ast_sym_entry.ident_var.type_qual = spec->ast_decl_spec.type_qual;
+
+                break;
+
+            case FNC_NAME_TYPE:
+                curr_sym_entry->ast_sym_entry.ident_fnc_name.storage_class = spec->ast_decl_spec.storage_class;
+                curr_sym_entry->ast_sym_entry.ident_fnc_name.is_inline = spec->ast_decl_spec.is_inline;
+
+                break;
+
+            default:
+                fprintf(stderr, "Unknown symbol table entry type.\n");
+                break;
+        }
+
+        // Adds type specifier to end of node chain
+        if(spec->ast_decl_spec.type_specifier != NULL) {
+            build_declarator(spec->ast_decl_spec.type_specifier, curr_sym_entry);
+        }
+
+        // Gets next declarator in list
+        curr_list_node = curr_list_node->next;
+
+    } while (curr_list_node != NULL);
+
+    // Returns new symbol table entry list
+    return decl_list;
 }
 
 // Combines pointer into declarator symbol table entry
 astnode *build_declarator(astnode *ptr, astnode *declarator) {
     // Checks type of declarator
+    astnode *tmp_node;
+
     // If function -> set ptr as return type
     if(declarator->ast_sym_entry.sym_type == FNC_NAME_TYPE) {
-        // Return type should be NULL, so no need to follow pointers
-        declarator->ast_sym_entry.ident_fnc_name.return_type = ptr;
+        tmp_node = declarator->ast_sym_entry.ident_fnc_name.return_type;
     } 
     // Else -> set ptr as type
     else {
-        astnode* tmp_node = declarator->ast_sym_entry.sym_node;
-        // Follows ptr / arr chain
-        while(1) {
-            if(tmp_node->node_type == POINTER_TYPE) {
-                // End of chain
-                if(tmp_node->ast_pointer.pointer_type == NULL) {
-                    tmp_node->ast_pointer.pointer_type = ptr;
-                    break;
-                } 
-                // Goes to next in chain
-                else {
-                    tmp_node = tmp_node->ast_pointer.pointer_type;
-                }
-            } else if(tmp_node->node_type == ARRAY_TYPE) {
-                // End of chain
-                if(tmp_node->ast_array.arr_type == NULL) {
-                    tmp_node->ast_array.arr_type = ptr;
-                    break;
-                }
-                // Goes to next in chain
-                else {
-                    tmp_node = tmp_node->ast_array.arr_type;
-                }
-            } else {
-                // ERROR
+        tmp_node = declarator->ast_sym_entry.sym_node;
+    }
+
+    // Follows ptr / arr chain
+    while(1) {
+        if(tmp_node->node_type == POINTER_TYPE) {
+            // End of chain
+            if(tmp_node->ast_pointer.pointer_type == NULL) {
+                tmp_node->ast_pointer.pointer_type = ptr;
+                break;
+            } 
+            // Goes to next in chain
+            else {
+                tmp_node = tmp_node->ast_pointer.pointer_type;
+            }
+        } else if(tmp_node->node_type == ARRAY_TYPE) {
+            // End of chain
+            if(tmp_node->ast_array.arr_type == NULL) {
+                tmp_node->ast_array.arr_type = ptr;
                 break;
             }
+            // Goes to next in chain
+            else {
+                tmp_node = tmp_node->ast_array.arr_type;
+            }
+        } else {
+            // ERROR
+            break;
         }
     }
 
     return declarator;
 }
 
-// Combines pointer into declarator
+// Combines pointer into abstract declarator
 astnode *build_abstract_declarator(astnode *ptr, astnode *declarator) {
     astnode *tmp_node;
     // Checks parent type

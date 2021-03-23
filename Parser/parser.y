@@ -219,11 +219,11 @@ expr: assignment_expr               {$$ = $1;}
 * -------------- */
 
 // Top level of language
-decl_or_fnc_def: declaration    {}
-               | fnc_def        {}
+decl_or_fnc_def: declaration    {/* Prints AST */}
+               | fnc_def        {/* Prints AST */}
                ;
 
-declaration: decl_specifier ';'                   {$$ = $1;}
+declaration: decl_specifier ';'                   {$$ = $1; /* Not sure what to do here */}
            | decl_specifier init_decl_list ';'    {$$ = merge_spec_decl_list($1,$2);
                                                    /* Add to symbol table */}
            ;
@@ -291,7 +291,7 @@ struct_decl_list: struct_decl                    {}
                 | struct_decl_list struct_decl   {}
                 ;
 
-struct_decl: spec_qual_list ';'                         {}
+struct_decl: spec_qual_list ';'                         {/* Not sure what to do here */}
            | spec_qual_list struct_declarator_list ';'  {$$ = merge_spec_decl_list($1,$2);
                                                          /* Add to struct & union */}
            ;

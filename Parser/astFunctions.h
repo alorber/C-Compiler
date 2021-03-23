@@ -89,7 +89,7 @@ typedef struct astnode_function_call {
 // Node List - Used for function argument, decl_stmt_list
 typedef struct astnode_list_entry {
     struct astnode *node;
-    struct astnode_node_list *next;
+    struct astnode_list_entry *next;
 } astnode_list_entry;
 
 // Declaration Nodes
@@ -339,19 +339,13 @@ void set_decl_spec_node_inline(astnode *decl_spec);
 // Adds updates from "addition" to "decl_spec" and frees "addition"
 astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec);
 
-// Creates declarator list
-astnode *create_decl_list(astnode *decl);
-
-// Adds declarator to declarator list
-astnode *add_decl_to_list(astnode *decl_list, astnode *decl);
-
 // Merges declarator specifiers with declarator list
 astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list);
 
 // Combines pointer into declarator symbol table entry
 astnode *build_declarator(astnode *ptr, astnode *declarator);
 
-// Combines pointer into declarator
+// Combines pointer into abstract declarator
 astnode *build_abstract_declarator(astnode *ptr, astnode *declarator);
 
 astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl);
