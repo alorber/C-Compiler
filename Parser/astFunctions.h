@@ -114,15 +114,15 @@ enum type_qualifier {
 };
 
 typedef struct astnode_decl_specifier {
-    astnode *type_specifier;
+    struct astnode *type_specifier;
     int storage_class;  // Using storage_class_specifier enum
     int type_qual;      // Using type_qualifier enum (AND of all qualifiers)
     int is_inline;      // Function specifier (1 = true)
 } astnode_decl_specifier;
 
 typedef struct astnode_type_name {
-    astnode *spec_qual_list;
-    astnode *abstr_declarator;
+    struct astnode *spec_qual_list;
+    struct astnode *abstr_declarator;
 } astnode_type_name;
 
 // Type Nodes
@@ -158,21 +158,21 @@ typedef struct astnode_scalar {
 
 // Pointer Type
 typedef struct astnode_pointer {
-    astnode *pointer_type;  // Type of pointer
+    struct astnode *pointer_type;  // Type of pointer
     int type_qual;          // Using type_qualifier enum (AND of all qualifiers)
 } astnode_pointer;
 
 // Array Type
 typedef struct astnode_array {
-    int arr_size;       // Size of array
-    astnode *arr_type;  // Type of array
+    int arr_size;       // Size of array (-1 = undefined)
+    struct astnode *arr_type;  // Type of array
 } astnode_array;
 
 // Function Type
 typedef struct astnode_function {
-    int num_args;           // Number of arguments
-    astnode *return_type;   // Return type
-    astnode **arg_types;    // Argument types
+    int num_args;                  // Number of arguments (-1 = undefined)
+    struct astnode *return_type;   // Return type
+    struct astnode *arg_types;     // Argument types (ast node list)
 } astnode_function;
 
 // Struct & Union Type
@@ -186,7 +186,7 @@ typedef struct astnode_struct_union {
 
 // Variable
 typedef struct astnode_ident_var {
-    astnode *var_type;      // Type of variable
+    struct astnode *var_type;      // Type of variable
     int storage_class;      // Storage Class (storage_class_specifier enum)
     int type_qual;          // Type Qualifier (type_qualifier enum)
     int stack_frame_offset; // Offset within stack frame (AUTO storage class only)
@@ -195,26 +195,26 @@ typedef struct astnode_ident_var {
 // Function Name
 typedef struct astnode_ident_fn_name {
     int storage_class;      // Storage Class enum
-    astnode *return_type;   // Return Type
-    astnode **arg_types;     // Argument types
+    struct astnode *return_type;   // Return Type
+    struct astnode *arg_types;     // Argument types (ast node list)
     int is_inline;          // Whether function was declared as inline (1 = yes)
     int is_defined;         // Whether function definition has been seen (1 = yes)
 } astnode_ident_fn_name;
 
 // Typedef
 typedef struct astnode_ident_typedef {
-    astnode *equivalent_type;  // Equivalent type to ident
+    struct astnode *equivalent_type;  // Equivalent type to ident
 } astnode_ident_typedef;
 
 // Enum Constant
 typedef struct astnode_ident_enum_const {
-    astnode_sym_table_entry *enum_tag;  // Enum tag of enum constant
+    struct astnode_sym_table_entry *enum_tag;  // Enum tag of enum constant
     int enum_value;                     // Value of enum constant
 } astnode_ident_enum_const;
 
 // Struct & Union Tag
 typedef struct astnode_ident_struct_union_tag {
-    symbolTable *sym_table;   // Symbol Table of member definitions
+    struct symbolTable *sym_table;   // Symbol Table of member definitions
     int is_defined;           // Whether definition is complete (1 = yes)
 } astnode_ident_struct_union_tag;
 
@@ -230,8 +230,8 @@ typedef struct astnode_ident_label {
 
 // Struct & Union Member
 typedef struct astnode_ident_struct_union_member {
-    astnode *type;      // Type of member
-    int offset;         // Offset within struct or union
+    struct astnode *type;      // Type of member
+    int offset;                // Offset within struct or union
     // Bit field width (Not supported)
     // Bit offset (Not supported)
 } astnode_ident_struct_union_member;
@@ -251,11 +251,11 @@ enum ident_type {
 // Symbol table entry struct
 typedef struct astnode_sym_table_entry {
     char *symbol;       // IDENT symbol
-    astnode *sym_node;  // Value of symbol
+    struct astnode *sym_node;  // Value of symbol
     int sym_type;       // Type of symbol
 
     char *filename;     // File of symbol's first def.
-    char *line_num;     // Line # of symbol's first def.
+    int line_num;       // Line # of symbol's first def.
 
     // Structs for possible IDENT types
     union {
@@ -356,7 +356,7 @@ astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl);
 astnode *create_scalar_node(int scalar_type, int is_signed);
 astnode *create_pointer_node(astnode *ptr_type, astnode *type_qual_list);
 astnode *create_array_node(int size, astnode *type);
-astnode *create_function_node(int num_args, astnode *return_type, astnode **arg_types);
+astnode *create_function_node(int num_args, astnode *return_type, astnode *arg_types);
 
 // Adds node to end of array / pointer chain
 astnode *add_to_arr_ptr_chain(astnode*parent_node, int type_to_add);
@@ -365,10 +365,12 @@ astnode *add_to_arr_ptr_chain(astnode*parent_node, int type_to_add);
 // ------------------
 
 // Creates a new symbol table entry, only filling symbol field
+// Sets default type to VAR TYPE
 astnode *create_sym_table_entry(char *ident);
 
-// Updates a symbol table entry by adding a pointer or array node
-// Follows pointer or array chain to end
+// Updates a symbol table entry by adding an array or function node
+// If type_to_add = FUNCTION_TYPE & no symbol table node, then entry is set to FNC_NAME_TYPE,
+//   otherwise new node is added to end of sym_node chain
 // type_to_add parameter uses same type enum as astnode
 // arr_size parameter is only used for array nodes
 astnode *create_arr_fnc_sym_entry(astnode *sym_table_entry, int type_to_add, int arr_size);

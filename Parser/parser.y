@@ -13,9 +13,9 @@
 #include "../Lexer/lexerFunctions.h"
 
 /* Remove comments to enable debugging */
-/* #define YYDEBUG	1 */
+#define YYDEBUG	1
 %}
-/* %define parse.error verbose */
+%define parse.error verbose
 
 %union {
     struct num_type number;
@@ -232,12 +232,12 @@ declaration: decl_specifier ';'                   {$$ = $1; /* Not sure what to 
 decl_specifier: storage_class_specifier                     {$$ = $1;}
               | storage_class_specifier decl_specifier      {$$ = merge_decl_spec_nodes($1,$2);}
               | type_specifier                              {$$ = create_decl_spec_node($1,UNKNOWN_SC,NONE_TQ);}
-              | type_specifier decl_specifier               {astnode *type_spec = create_decl_spec_node($1,NULL,NONE_TQ);
+              | type_specifier decl_specifier               {astnode *type_spec = create_decl_spec_node($1,0,NONE_TQ);
                                                              $$ = merge_decl_spec_nodes(type_spec, $2);}
-              | type_qualifier                              {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,$1);}
-              | type_qualifier decl_specifier               {astnode *type_qual = create_decl_spec_node(NULL,UNKNOWN_SC,$1);
+              | type_qualifier                              {$$ = create_decl_spec_node(0,UNKNOWN_SC,$1);}
+              | type_qualifier decl_specifier               {astnode *type_qual = create_decl_spec_node(0,UNKNOWN_SC,$1);
                                                              $$ = merge_decl_spec_nodes(type_qual,$2);}
-              | fnc_specifier                               {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,NONE_TQ);
+              | fnc_specifier                               {$$ = create_decl_spec_node(0,UNKNOWN_SC,NONE_TQ);
                                                              set_decl_spec_node_inline($$);}
               | fnc_specifier decl_specifier                {$$ = $2;
                                                              set_decl_spec_node_inline($$);}
@@ -252,10 +252,10 @@ init_decl: declarator                   {$$ = $1;}
          ;
 
 storage_class_specifier: TYPEDEF   {}
-                       | EXTERN    {$$ = create_decl_spec_node(NULL,EXTERN_SC,NONE_TQ);}
-                       | STATIC    {$$ = create_decl_spec_node(NULL,STATIC_SC,NONE_TQ);}
-                       | AUTO      {$$ = create_decl_spec_node(NULL,AUTO_SC,NONE_TQ);}
-                       | REGISTER  {$$ = create_decl_spec_node(NULL,REGISTER_SC,NONE_TQ);}
+                       | EXTERN    {$$ = create_decl_spec_node(0,EXTERN_SC,NONE_TQ);}
+                       | STATIC    {$$ = create_decl_spec_node(0,STATIC_SC,NONE_TQ);}
+                       | AUTO      {$$ = create_decl_spec_node(0,AUTO_SC,NONE_TQ);}
+                       | REGISTER  {$$ = create_decl_spec_node(0,REGISTER_SC,NONE_TQ);}
                        ;
 
 type_specifier: VOID                    {$$ = create_scalar_node(VOID_ST, UNKNOWN_SS);}
@@ -272,11 +272,11 @@ type_specifier: VOID                    {$$ = create_scalar_node(VOID_ST, UNKNOW
               | LONG DOUBLE             {$$ = create_scalar_node(LONG_DOUBLE_ST, UNKNOWN_SS);}
               | SIGNED                  {$$ = create_scalar_node(UNKNOWN_ST, SIGNED_SS);}
               | UNSIGNED                {$$ = create_scalar_node(UNKNOWN_ST, UNSIGNED_SS);}
-              | BOOL                    {$$ = create_scalar_node(BOOL_ST, UNKNOWN_SS);}
-              | COMPLEX                 {/* Not supported currently */}
+              | _BOOL                    {$$ = create_scalar_node(BOOL_ST, UNKNOWN_SS);}
+              | _COMPLEX                 {/* Not supported currently */}
               | struct_union_specifier  {$$ = $1;}
               | enum_specifier          {$$ = $1;}
-              | typedef_name            {$$ = $1;}
+              /*| typedef_name            {$$ = $1;} Typedefs not supported*/
               ;
 
 struct_union_specifier: struct_union '{' struct_decl_list '}'           {}
@@ -298,11 +298,11 @@ struct_decl: spec_qual_list ';'                         {/* Not sure what to do 
            ;
 
 spec_qual_list: type_specifier                  {$$ = create_decl_spec_node($1,UNKNOWN_SC,NONE_TQ);}
-              | type_specifier spec_qual_list   {astnode *type_spec = create_decl_spec_node($1,NULL,NONE_TQ);
-                                                $$ = merge_decl_spec_nodes(type_spec, $2);}
-              | type_qualifier                  {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,$1);}
-              | type_qualifier spec_qual_list   {astnode *type_qual = create_decl_spec_node(NULL,UNKNOWN_SC,$1);
-                                                $$ = merge_decl_spec_nodes(type_qual,$2);}
+              | type_specifier spec_qual_list   {astnode *type_spec = create_decl_spec_node($1,0,NONE_TQ);
+                                                 $$ = merge_decl_spec_nodes(type_spec, $2);}
+              | type_qualifier                  {$$ = create_decl_spec_node(0,UNKNOWN_SC,$1);}
+              | type_qualifier spec_qual_list   {astnode *type_qual = create_decl_spec_node(0,UNKNOWN_SC,$1);
+                                                 $$ = merge_decl_spec_nodes(type_qual,$2);}
               ;
 
 struct_declarator_list: struct_declarator                             {$$ = init_node_list($1);}
@@ -329,10 +329,10 @@ declarator: dir_declarator           {$$ = $1;}
 dir_declarator: IDENT                                {$$ = create_sym_table_entry($1);}
                  | '(' declarator ')'                {$$ = $2;}
                  /* More complex array expressions not supported */
-                 | dir_declarator '[' ']'            {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,NULL);}
+                 | dir_declarator '[' ']'            {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,-1);}
                  | dir_declarator '[' NUMBER ']'     {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,$3.i_value);}  
                  /* Compiler assumes all function declarators are () */
-                 | dir_declarator '(' ')'            {$$ = create_arr_fnc_sym_entry($1,FUNCTION_TYPE,NULL);}
+                 | dir_declarator '(' ')'            {$$ = create_arr_fnc_sym_entry($1,FUNCTION_TYPE,-1);}
                  ;
 
 pointer: '*'                                {$$ = create_pointer_node(NULL,NULL);}
@@ -341,9 +341,9 @@ pointer: '*'                                {$$ = create_pointer_node(NULL,NULL)
        | '*' type_qualifier_list pointer    {$$ = create_pointer_node($3,$2);}
        ;
 
-type_qualifier_list: type_qualifier                       {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,$1);}
-                   | type_qualifier_list type_qualifier   {astnode *type_qual = create_decl_spec_node(NULL,UNKNOWN_SC,$2);
-                                                           $$ = merge_decl_spec_nodes(type_qual,$2);}
+type_qualifier_list: type_qualifier                       {$$ = create_decl_spec_node(0,UNKNOWN_SC,$1);}
+                   | type_qualifier_list type_qualifier   {astnode *type_qual = create_decl_spec_node(0,UNKNOWN_SC,$2);
+                                                           $$ = merge_decl_spec_nodes(type_qual,$1);}
                    ;
 
 type_name: spec_qual_list                       {$$ = create_type_name_node($1,NULL);}
@@ -357,12 +357,12 @@ abstr_declarator: pointer                        {$$ = $1;}
 
 dir_abstr_declarator: '(' abstr_declarator ')'              {$$ = $2;}
                     /* More complex array expressions not supported */
-                    | '[' ']'                               {$$ = create_array_node(NULL,NULL);}
-                    | dir_abstr_declarator '[' ']'          {$$ = create_array_node($2.i_value,$1);}
+                    | '[' ']'                               {$$ = create_array_node(-1,NULL);}
+                    | dir_abstr_declarator '[' ']'          {$$ = create_array_node(-1,$1);}
                     | '[' NUMBER ']'                        {$$ = create_array_node($2.i_value,NULL);}
                     | dir_abstr_declarator '[' NUMBER ']'   {$$ = create_array_node($3.i_value,$1);}
                     /* Compiler assumes all function declarators are () */
-                    | '(' ')'                               {$$ = create_function_node(NULL,NULL,NULL);}
+                    | '(' ')'                               {$$ = create_function_node(-1,NULL,NULL);}
                     | dir_abstr_declarator '(' ')'          {// Function won't work if dir_abstr_declarator is a function.
                                                              // Isn't syntactically allowed, so checks here for error
                                                              if($1->node_type == FUNCTION_TYPE) {
@@ -391,10 +391,10 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                      }
                                      /* Merges decl_specifier & declarator */
                                      $<node>$->ast_sym_entry.sym_type = FNC_NAME_TYPE;
-                                     $<node>$->ast_sym_entry.filename = strdup(filename);
-                                     $<node>$->ast_sym_entry.line_num = line_number;
+                                     $<node>$->ast_sym_entry.filename = "TBD";  /*strdup(filename)*/
+                                     $<node>$->ast_sym_entry.line_num = 1; /*line_number*/
                                      $<node>$->ast_sym_entry.ident_fnc_name.storage_class = EXTERN_SC;
-                                     $<node>$->ast_sym_entry.ident_fnc_name.is_inlined = $1->ast_decl_spec.is_inlined;
+                                     $<node>$->ast_sym_entry.ident_fnc_name.is_inline = $1->ast_decl_spec.is_inline;
                                      $<node>$->ast_sym_entry.ident_fnc_name.is_defined = 1;
 
                                      if(add_to_scope) {
@@ -408,7 +408,7 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
     
 compound_stmt: '{'                      {/* Creates new scope */
                                          createNewScope(FUNCTION_SCOPE);} 
-                decl_or_stmt_list '}'   {$$ = $2;
+                decl_or_stmt_list '}'   {$$ = $3;
                                          /* Removes inner scope */
                                          deleteInnerScope();
                                          }
@@ -433,7 +433,7 @@ statement: compound_stmt    {$$ = $1;}
 /* ----------- */
 
 int main() {
-    //yydebug = 0;   // Set value to 1 to enable debugging
+    yydebug = 1;   // Set value to 1 to enable debugging
     initScopeStack();  // Creates Scope Stack
     yyparse();
     return 0;
@@ -635,7 +635,7 @@ void print_ast(astnode *node, int num_indents) {
             }
 
             // Prints arguments
-            astnode_argument *curr_argument = &(node->ast_fnc_call.expr_list_head->ast_node_list_head);
+            astnode_list_entry *curr_argument = &(node->ast_fnc_call.expr_list_head->ast_node_list_head);
             for(int arg_number = 1; curr_argument != NULL; arg_number++, curr_argument = curr_argument->next) {
                 print_indents(num_indents);
                 fprintf(stdout, "arg #%i=\n", arg_number);
@@ -644,18 +644,18 @@ void print_ast(astnode *node, int num_indents) {
             
             break;
 
-        case NODE_LIST_TYPE:
+        case NODE_LIST_TYPE: ;
             // Print each node in list
             astnode_list_entry *curr_node = &(node->ast_node_list_head);
             while(curr_node != NULL) {
-                print_ast(curr_node->node);
+                print_ast(curr_node->node, num_indents+1);
                 curr_node = curr_node->next;
             }
 
             break;
 
         case DECL_SPEC_TYPE:
-            fprintf("DECLARATION SPECIFIER\n");
+            fprintf(stdout, "DECLARATION SPECIFIER\n");
 
             break;
 
@@ -696,7 +696,7 @@ void print_ast(astnode *node, int num_indents) {
             fprintf(stdout, "In scope %s @ line %i in file %s.\n", "TODO",0,"TODO");
             
             switch(node->ast_sym_entry.sym_type) {
-                case VAR:
+                case VAR_TYPE:
                     fprintf(stdout, "Storage Class: %s.\nDATA TYPE:\n", storageClassToString(node->ast_sym_entry.ident_var.storage_class));
                     print_ast(node->ast_sym_entry.sym_node, num_indents+1);
 

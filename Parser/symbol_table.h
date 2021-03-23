@@ -30,20 +30,20 @@ enum scopes {
 typedef struct symbolTable {
     int size;   // Current number of elements
     int capacity; 
-    astnode **table;
+    struct astnode **table;
 } symbolTable;
 
 // Scope entry - element of scopeStack linked list
 typedef struct scopeEntry {
     int scope;  // Scope of symbol table
-    symbolTable *sym_tables[3]; // Symbol table for each namespace (in order of enum above)
-    scopeEntry *scope_up; // Next outer scope
+    struct symbolTable *sym_tables[3]; // Symbol table for each namespace (in order of enum above)
+    struct scopeEntry *scope_up; // Next outer scope
 } scopeEntry;
 
 // Scopes are stored in a linked-list / stack
 typedef struct scopeStack {
-    scopeEntry *innermost_scope;
-    scopeEntry *outermost_scope;
+    struct scopeEntry *innermost_scope;
+    struct scopeEntry *outermost_scope;
 } scopeStack;
 
 // Helper Functions
@@ -68,18 +68,18 @@ symbolTable *createTable();
 void destroyTable(symbolTable *sym_table);
 
 // Searches symbol table for symbol
-astnode *searchTable(symbolTable *sym_table, char *symbol);
+struct astnode *searchTable(symbolTable *sym_table, char *symbol);
 
 // Adds new symbol entry to the symbol table
 // If replace == 1 --> replaces duplicate entry
 // Returns 1 on success, -1 on failure
-int addEntryToTable(symbolTable *sym_table, astnode *sym_entry, int replace);
+int addEntryToTable(symbolTable *sym_table, struct astnode *sym_entry, int replace);
 
 // Adds new symbol to specified namespace in innermost scope
 // If list is given, adds each entry in list
 // If replace == 1 --> replaces duplicate entry
 // Returns 1 on (all) success, -1 on (any) failure
-int addEntryToNamespace(int name_space, astnode *sym_entry, int replace);
+int addEntryToNamespace(int name_space, struct astnode *sym_entry, int replace);
 
 // Scope Stack Functions
 // ----------------------
@@ -98,6 +98,6 @@ void deleteInnerScope();
 scopeEntry *getInnerScope();
 
 // Searches entire scope stack for symbol, inner --> outer
-astnode *searchScopeStack(char *symbol, int symbol_namespace);
+struct astnode *searchScopeStack(char *symbol, int symbol_namespace);
 
 #endif // SYMBOLTABLE_H
