@@ -603,3 +603,103 @@ astnode *create_arr_fnc_sym_entry(astnode *sym_table_entry, int type_to_add, int
     return sym_table_entry;
 
 }
+
+// Printing Functions
+// -------------------
+
+// Converts storage class enum to string for printing
+char *storageClassToString(int storage_class) {
+    switch(storage_class) {
+        case AUTO_SC:
+            return "AUTO";
+        case REGISTER_SC:
+            return "REGISTER";
+        case EXTERN_SC:
+            return "EXTERN";
+        case STATIC_SC:
+            return "STATIC";
+        case UNKNOWN_SC:
+            return "NOT SPECIFIED";
+        default:
+            return "INVALID STORAGE CLASS";
+    }
+}
+
+char *scalarToString(astnode *scalar_node) {
+    char *scalar_sign;
+    char *scalar_type;
+
+    // Converts sign
+    switch(scalar_node->ast_scalar.is_signed) {
+        case SIGNED_SS:
+            scalar_sign = "SIGNED ";
+            break;
+        case UNSIGNED_SS:
+            scalar_sign = "UNSIGNED ";
+        case UNKNOWN_SS:
+            scalar_sign = "UNSPECIFIED SIGN ";
+    }
+
+    // Converts Type
+    switch(scalar_node->ast_scalar.scalar_type) {
+        VOID_ST:
+            scalar_type = "VOID";
+            break;
+        CHAR_ST:
+            scalar_type = "CHAR";
+            break;
+        SHORT_ST:
+            scalar_type = "SHORT";
+            break;
+        INT_ST:
+            scalar_type = "INT";
+            break;
+        LONG_ST:
+            scalar_type = "LONG";
+            break;
+        LONG_LONG_ST:
+            scalar_type = "LONG LONG";
+            break;
+        FLOAT_ST:
+            scalar_type = "FLOAT";
+            break;
+        DOUBLE_ST:
+            scalar_type = "DOUBLE";
+            break;
+        LONG_DOUBLE_ST:
+            scalar_type = "LONG DOUBLE";
+            break;
+        BOOL_ST:
+            scalar_type = "BOOL";
+            break;
+        UNKNOWN_ST:
+            scalar_type = "UNSPECIFIED TYPE";
+            break;
+    }
+
+    return strcat(scalar_sign, scalar_type); 
+}
+
+// Converts IDENT type enum to string for printing
+char *identTypeToString(int ident_type) {
+    switch(ident_type) {
+        case VAR_TYPE:
+            return "VAR";
+        case FNC_NAME_TYPE:
+            return "FUNCTION NAME";
+        case TYPEDEF_TYPE:
+            return "TYPEDEF";
+        case ENUM_CONST_TYPE:
+            return "ENUM CONSTANT";
+        case STRUCT_UNION_TAG_TYPE:
+            return "STRUCT / UNION TAG";
+        case ENUM_TAG_TYPE:
+            return "ENUM TAG";
+        case LABEL_TYPE:
+            return "LABEL";
+        case STRUCT_UNION_MEMBER_TYPE:
+            return "STRUCT / UNION MEMBER";
+        default:
+            return "INVALID IDENT TYPE";
+    }
+}

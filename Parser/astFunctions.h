@@ -225,7 +225,7 @@ typedef struct astnode_ident_enum_tag {
 
 // Label
 typedef struct astnode_ident_label {
-    // Intermediate coe or assembly language label
+    // Intermediate code or assembly language label
 } astnode_ident_label;
 
 // Struct & Union Member
@@ -373,5 +373,16 @@ astnode *create_sym_table_entry(char *ident);
 // arr_size parameter is only used for array nodes
 astnode *create_arr_fnc_sym_entry(astnode *sym_table_entry, int type_to_add, int arr_size);
 
+// Printer Functions
+// ------------------
+
+// Converts storage class enum to string for printing
+char *storageClassToString(int storage_class);
+
+// Converts scalar node to string representing value
+char *scalarToString(astnode *scalar_node);
+
+// Converts IDENT type enum to string for printing
+char *identTypeToString(int ident_type);
 
 #endif // ASTFUNCTIONS_H

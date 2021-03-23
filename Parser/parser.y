@@ -9,6 +9,7 @@
 #include "numType.h"
 #include "parser.h"
 #include "astFunctions.h"
+#include "symbol_table.h"
 #include "../Lexer/lexerFunctions.h"
 
 /* Remove comments to enable debugging */
@@ -219,8 +220,8 @@ expr: assignment_expr               {$$ = $1;}
 * -------------- */
 
 // Top level of language
-decl_or_fnc_def: declaration    {/* Prints AST */}
-               | fnc_def        {/* Prints AST */}
+decl_or_fnc_def: declaration    {print_ast($1,0);}
+               | fnc_def        {print_ast($1,0);}
                ;
 
 declaration: decl_specifier ';'                   {$$ = $1; /* Not sure what to do here */}
@@ -433,6 +434,7 @@ statement: compound_stmt    {$$ = $1;}
 
 int main() {
     //yydebug = 0;   // Set value to 1 to enable debugging
+    initScopeStack();  // Creates Scope Stack
     yyparse();
     return 0;
 }
@@ -641,6 +643,71 @@ void print_ast(astnode *node, int num_indents) {
             }
             
             break;
+
+        case NODE_LIST_TYPE:
+            // Print each node in list
+            astnode_list_entry *curr_node = &(node->ast_node_list_head);
+            while(curr_node != NULL) {
+                print_ast(curr_node->node);
+                curr_node = curr_node->next;
+            }
+
+            break;
+
+        case DECL_SPEC_TYPE:
+            fprintf("DECLARATION SPECIFIER\n");
+
+            break;
+
+        case TYPE_NAME_TYPE:
+            fprintf(stdout, "TYPENAME\n");
+
+            break;
+
+        case SCALAR_TYPE:
+            fprintf(stdout, "%s\n", scalarToString(node));
+
+            break;
+
+        case POINTER_TYPE:
+            fprintf(stdout, "POINTER to:\n");
+            print_ast(node->ast_pointer.pointer_type, num_indents+1);
+
+            break;
+
+        case ARRAY_TYPE:
+            fprintf(stdout, "ARRAY of length %i of type:\n", node->ast_array.arr_size);
+            print_ast(node->ast_array.arr_type, num_indents+1);
+
+            break;
+
+        case FUNCTION_TYPE:
+            fprintf(stdout, "FUNCTION with return type:\n");
+            print_ast(node->ast_function.return_type, num_indents+1);
+
+            break;
+
+        case STRUCT_UNION_TYPE:
+            // TODO
+            break;
+
+        case SYM_ENTRY_TYPE:
+            fprintf(stdout, "SYMBOL %s as %s @ line %i in file %s.\n", node->ast_sym_entry.symbol, identTypeToString(node->ast_sym_entry.sym_type), node->ast_sym_entry.line_num, node->ast_sym_entry.filename);
+            fprintf(stdout, "In scope %s @ line %i in file %s.\n", "TODO",0,"TODO");
+            
+            switch(node->ast_sym_entry.sym_type) {
+                case VAR:
+                    fprintf(stdout, "Storage Class: %s.\nDATA TYPE:\n", storageClassToString(node->ast_sym_entry.ident_var.storage_class));
+                    print_ast(node->ast_sym_entry.sym_node, num_indents+1);
+
+                    break;
+                case FNC_NAME_TYPE:
+                    fprintf(stdout, "Storage Class: %s.\nRETURN TYPE:\n", storageClassToString(node->ast_sym_entry.ident_fnc_name.storage_class));
+                    print_ast(node->ast_sym_entry.ident_fnc_name.return_type, num_indents+1);
+
+                    break;
+            }
+
 
         default:
             fprintf(stdout, "ERROR: UNKNOWN NODE\n");
