@@ -223,12 +223,11 @@ astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec) {
     }
     // Checks type qualifier
     else if(addition->ast_decl_spec.type_qual != NONE_TQ) {
-        // Checks that decl_spec has no type qualifier
-        if(decl_spec->ast_decl_spec.type_qual != NONE_TQ) {
-            // ERROR
-        } else {
-            decl_spec->ast_decl_spec.type_qual = addition->ast_decl_spec.type_qual;
-        }
+        // Combines with bitwise OR
+        decl_spec->ast_decl_spec.type_qual = decl_spec->ast_decl_spec.type_qual | addition->ast_decl_spec.type_qual;
+
+        // Removes NONE_TQ bit if needed
+        decl_spec->ast_decl_spec.type_qual = decl_spec->ast_decl_spec.type_qual && 1110;
     }
     // Checks inline
     else if(addition->ast_decl_spec.is_inline == 1) {
@@ -396,7 +395,7 @@ astnode *create_scalar_node(int scalar_type, int is_signed) {
 astnode *create_pointer_node(astnode *parent_ptr, astnode *type_qual_list) {
     astnode *new_pointer = allocate_node_mem();
     new_pointer->node_type = POINTER_TYPE;
-    // ADD TYPE QUALIFIER LIST
+    new_pointer->ast_pointer.type_qual = type_qual_list->ast_decl_spec.type_qual;
 
     // Checks if no parent pointer (returns new pointer)
     if(parent_ptr = NULL) {

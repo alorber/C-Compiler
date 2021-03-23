@@ -340,8 +340,9 @@ pointer: '*'                                {$$ = create_pointer_node(NULL,NULL)
        | '*' type_qualifier_list pointer    {$$ = create_pointer_node($3,$2);}
        ;
 
-type_qualifier_list: type_qualifier                       {}
-                   | type_qualifier_list type_qualifier   {}
+type_qualifier_list: type_qualifier                       {$$ = create_decl_spec_node(NULL,UNKNOWN_SC,$1);}
+                   | type_qualifier_list type_qualifier   {astnode *type_qual = create_decl_spec_node(NULL,UNKNOWN_SC,$2);
+                                                           $$ = merge_decl_spec_nodes(type_qual,$2);}
                    ;
 
 type_name: spec_qual_list                       {$$ = create_type_name_node($1,NULL);}

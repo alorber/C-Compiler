@@ -105,17 +105,18 @@ enum storage_class_specifier {
 };
 
 // Enum of possible type qualifiers
+// Powers of two, so they can be compared and combined with bitwise operators
 enum type_qualifier {
     NONE_TQ = 1,
-    CONST_TQ,
-    VOLATILE_TQ,
-    RESTRICT_TQ
+    CONST_TQ = 2,
+    VOLATILE_TQ = 4,
+    RESTRICT_TQ = 8
 };
 
 typedef struct astnode_decl_specifier {
     astnode *type_specifier;
     int storage_class;  // Using storage_class_specifier enum
-    int type_qual;      // Using type_qualifier enum
+    int type_qual;      // Using type_qualifier enum (AND of all qualifiers)
     int is_inline;      // Function specifier (1 = true)
 } astnode_decl_specifier;
 
@@ -158,7 +159,7 @@ typedef struct astnode_scalar {
 // Pointer Type
 typedef struct astnode_pointer {
     astnode *pointer_type;  // Type of pointer
-    // TODO: Add type qualifier
+    int type_qual;          // Using type_qualifier enum (AND of all qualifiers)
 } astnode_pointer;
 
 // Array Type
