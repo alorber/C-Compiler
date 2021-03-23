@@ -319,8 +319,8 @@ astnode* create_ident_node(char *ident);
 astnode* create_string_node(char *string); 
 astnode* create_char_node(char *charlit);
 astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list);
-astnode* init_expr_list(astnode* expr_list_head);
-astnode* add_argument_to_list(astnode *expr_list, astnode *new_argument);
+astnode* init_node_list(astnode* node_list_head);
+astnode* add_node_to_list(astnode *node_list, astnode *new_argument);
 
 // Helper function to create number node with value of 1 (for ++ & --)
 astnode* create_num_one_node();

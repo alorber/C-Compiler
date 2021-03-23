@@ -378,12 +378,38 @@ initializer: assignment_expr   {$$ = $1;}
            /*  Initialized declarations not supported */
            ;
 
-fnc_def: decl_specifier declarator compound_stmt    {}
+fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
+                                     /* If yes, updates entry fields */
+                                     $<node>$ = searchScopeStack($2->ast_sym_entry.symbol,OTHER_NS);
+                                     /* If no, uses new entry & adds to scope */
+                                     int add_to_scope = 0;
+                                     if($<node>$ == NULL) {
+                                         $<node>$ = $2; 
+                                         add_to_scope = 1;
+                                     }
+                                     /* Merges decl_specifier & declarator */
+                                     $<node>$->ast_sym_entry.sym_type = FNC_NAME_TYPE;
+                                     $<node>$->ast_sym_entry.filename = strdup(filename);
+                                     $<node>$->ast_sym_entry.line_num = line_number;
+                                     $<node>$->ast_sym_entry.ident_fnc_name.storage_class = EXTERN_SC;
+                                     $<node>$->ast_sym_entry.ident_fnc_name.is_inlined = $1->ast_decl_spec.is_inlined;
+                                     $<node>$->ast_sym_entry.ident_fnc_name.is_defined = 1;
+
+                                     if(add_to_scope) {
+                                         addEntryToNamespace(OTHER_NS,$<node>$,0);
+                                     } 
+                                    }
+         compound_stmt              {$$ = $<node>3;
+                                     $$->ast_sym_entry.sym_node = $4;
+                                     }
        ;
     
-compound_stmt: '{'                      {/* Create new scope */
+compound_stmt: '{'                      {/* Creates new scope */
                                          createNewScope(FUNCTION_SCOPE);} 
-                decl_or_stmt_list '}'   {$$ = $2;}
+                decl_or_stmt_list '}'   {$$ = $2;
+                                         /* Removes inner scope */
+                                         deleteInnerScope();
+                                         }
              ;
 
 decl_or_stmt_list: decl_or_stmt                     {$$ = init_node_list($1);}

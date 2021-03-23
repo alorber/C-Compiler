@@ -44,7 +44,7 @@ int rehashTable(symbolTable *sym_table) {
     // Rehashes symbol entries
     for(int i = 0; i < old_capacity; i++) {
         if(temp_table[i]) {
-            addTableEntry(sym_table, temp_table[i], 0);
+            addEntryToTable(sym_table, temp_table[i], 0);
         }
     }
 
@@ -122,7 +122,7 @@ astnode *searchTable(symbolTable *sym_table, char *symbol) {
 // Adds new symbol entry to the symbol table
 // If replace == 1 --> replaces duplicate entry
 // Returns 1 on success, -1 on failure
-int addTableEntry(symbolTable *sym_table, astnode *sym_entry, int replace) {
+int addEntryToTable(symbolTable *sym_table, astnode *sym_entry, int replace) {
     // Checks if table needs to be made larger
     if(2 * sym_table->size > sym_table->capacity && rehashTable(sym_table) == -1) {
         // ERROR
@@ -151,6 +151,14 @@ int addTableEntry(symbolTable *sym_table, astnode *sym_entry, int replace) {
     }
 
     return 1;
+}
+
+// Adds new symbol to specified namespace in innermost scope
+// If replace == 1 --> replaces duplicate entry
+// Returns 1 on success, -1 on failure
+int addEntryToNamespace(int name_space, astnode *sym_entry, int replace) {
+    symbolTable *sym_table = getInnerScope()->sym_tables[name_space];
+    return addEntryToTable(sym_table,sym_entry,replace);
 }
 
 // Scope Stack Functions
