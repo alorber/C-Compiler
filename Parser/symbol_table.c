@@ -154,11 +154,28 @@ int addEntryToTable(symbolTable *sym_table, astnode *sym_entry, int replace) {
 }
 
 // Adds new symbol to specified namespace in innermost scope
+// If list is given, adds each entry in list
 // If replace == 1 --> replaces duplicate entry
-// Returns 1 on success, -1 on failure
+// Returns 1 on (all) success, -1 on (any) failure
 int addEntryToNamespace(int name_space, astnode *sym_entry, int replace) {
     symbolTable *sym_table = getInnerScope()->sym_tables[name_space];
-    return addEntryToTable(sym_table,sym_entry,replace);
+
+    // Checks if list
+    if(sym_entry->node_type == NODE_LIST_TYPE) {
+        int return_val = 1;
+        // Loops through each entry
+        astnode_list_entry *curr_list_node = &(sym_entry->ast_node_list_head);
+        while(curr_list_node != NULL) {
+            if(addEntryToTable(sym_table,curr_list_node->node,replace) == -1) {
+                return_val = -1;
+            }
+            curr_list_node = curr_list_node->next;
+        }
+        return return_val;
+    } else {
+        return addEntryToTable(sym_table,sym_entry,replace);
+    }
+    
 }
 
 // Scope Stack Functions

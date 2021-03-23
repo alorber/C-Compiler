@@ -225,7 +225,7 @@ decl_or_fnc_def: declaration    {/* Prints AST */}
 
 declaration: decl_specifier ';'                   {$$ = $1; /* Not sure what to do here */}
            | decl_specifier init_decl_list ';'    {$$ = merge_spec_decl_list($1,$2);
-                                                   /* Add to symbol table */}
+                                                   addEntryToNamespace(OTHER_NS,$$,0);}
            ;
 
 decl_specifier: storage_class_specifier                     {$$ = $1;}

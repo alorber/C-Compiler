@@ -76,8 +76,9 @@ astnode *searchTable(symbolTable *sym_table, char *symbol);
 int addEntryToTable(symbolTable *sym_table, astnode *sym_entry, int replace);
 
 // Adds new symbol to specified namespace in innermost scope
+// If list is given, adds each entry in list
 // If replace == 1 --> replaces duplicate entry
-// Returns 1 on success, -1 on failure
+// Returns 1 on (all) success, -1 on (any) failure
 int addEntryToNamespace(int name_space, astnode *sym_entry, int replace);
 
 // Scope Stack Functions
