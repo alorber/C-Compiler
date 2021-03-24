@@ -245,10 +245,9 @@ astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec) {
 astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list) {
     // Gets first declarator in list
     astnode_list_entry *curr_list_node = &(decl_list->ast_node_list_head);
-    astnode *curr_sym_entry;  // New symbol table entry
+    astnode *curr_sym_entry;  // Current symbol table entry
 
-    // Builds symbol table entry list
-    int first_node = 1;  // Need to create list on first node
+    // Updates symbol table entry list
     do {
         curr_sym_entry = curr_list_node->node;
 
@@ -650,47 +649,52 @@ char *scalarToString(astnode *scalar_node) {
         case UNSIGNED_SS:
             scalar_sign = "UNSIGNED ";
         case UNKNOWN_SS:
-            scalar_sign = "UNSPECIFIED SIGN ";
+            scalar_sign = "";
     }
 
     // Converts Type
     switch(scalar_node->ast_scalar.scalar_type) {
-        VOID_ST:
+        case VOID_ST:
             scalar_type = "VOID";
             break;
-        CHAR_ST:
+        case CHAR_ST:
             scalar_type = "CHAR";
             break;
-        SHORT_ST:
+        case SHORT_ST:
             scalar_type = "SHORT";
             break;
-        INT_ST:
+        case INT_ST:
             scalar_type = "INT";
             break;
-        LONG_ST:
+        case LONG_ST:
             scalar_type = "LONG";
             break;
-        LONG_LONG_ST:
+        case LONG_LONG_ST:
             scalar_type = "LONG LONG";
             break;
-        FLOAT_ST:
+        case FLOAT_ST:
             scalar_type = "FLOAT";
             break;
-        DOUBLE_ST:
+        case DOUBLE_ST:
             scalar_type = "DOUBLE";
             break;
-        LONG_DOUBLE_ST:
+        case LONG_DOUBLE_ST:
             scalar_type = "LONG DOUBLE";
             break;
-        BOOL_ST:
+        case BOOL_ST:
             scalar_type = "BOOL";
             break;
-        UNKNOWN_ST:
-            scalar_type = "UNSPECIFIED TYPE";
+        case UNKNOWN_ST:
+            scalar_type = "UNSPECIFIED-TYPE";
             break;
     }
 
-    return strcat(scalar_sign, scalar_type); 
+    // Concatenates strings
+    char *result = malloc(sizeof(scalar_sign)+sizeof(scalar_type));
+    strcat(result,scalar_sign);
+    strcat(result,scalar_type);
+
+    return result; 
 }
 
 // Converts IDENT type enum to string for printing
