@@ -77,7 +77,7 @@
 %left IF
 %left ELSE
 
-%start decl_or_fnc_def
+%start decl_or_fnc_def_list
 
 %%
 /* ------- */
@@ -220,6 +220,10 @@ expr: assignment_expr               {$$ = $1;}
 * -------------- */
 
 // Top level of language
+decl_or_fnc_def_list: decl_or_fnc_def                       {}
+                    | decl_or_fnc_def_list decl_or_fnc_def  {}
+
+
 decl_or_fnc_def: declaration    {print_ast($1,0);}
                | fnc_def        {print_ast($1,0);}
                ;
@@ -453,6 +457,7 @@ void print_indents(int num_indents) {
 
 // Prints AST
 void print_ast(astnode *node, int num_indents) {
+    fprintf(stderr,"PRINTING node type %i\n",node->node_type);
     // Prints indents
     print_indents(num_indents);
 
@@ -666,7 +671,6 @@ void print_ast(astnode *node, int num_indents) {
 
         case SCALAR_TYPE:
             fprintf(stdout, "%s\n", scalarToString(node));
-
             break;
 
         case POINTER_TYPE:
