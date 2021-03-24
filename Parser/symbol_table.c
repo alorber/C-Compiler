@@ -188,16 +188,16 @@ static scopeStack *scope_stack;
 // Run once at start of parser
 void initScopeStack() {
     // Creates stack
-    if((scope_stack = calloc(1,sizeof(scopeStack))) == NULL) {
+    if((scope_stack = malloc(sizeof(scopeStack))) == NULL) {
         // ERROR - unable to create new scope stack
         return;
-    } else {
-        // Creates file scope
-        createNewScope(FILE_SCOPE);
     }
 
     scope_stack->innermost_scope = NULL;
     scope_stack->outermost_scope = NULL;
+
+    // Creates file scope
+    createNewScope(FILE_SCOPE);
 }
 
 // Creates new scope and adds to stack
