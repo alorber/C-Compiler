@@ -715,7 +715,9 @@ void print_ast(astnode *node, int num_indents) {
                     print_ast(node->ast_sym_entry.ident_fnc_name.return_type, num_indents+1);
                     
                     // Prints scope definitions
-                    /* print_ast(node->ast_sym_entry.sym_node, num_indents); */
+                    if(node->ast_sym_entry.sym_node != NULL) {
+                        print_ast(node->ast_sym_entry.sym_node, num_indents);
+                    }
 
                     break;
             }
