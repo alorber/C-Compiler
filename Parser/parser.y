@@ -15,7 +15,7 @@
 /* Remove comments to enable debugging */
 #define YYDEBUG	1
 %}
-%define parse.error verbose
+/* %define parse.error verbose */
 
 %union {
     struct num_type number;
@@ -236,7 +236,7 @@ declaration: decl_specifier ';'                   {$$ = $1; /* Not sure what to 
 decl_specifier: storage_class_specifier                     {$$ = $1;}
               | storage_class_specifier decl_specifier      {$$ = merge_decl_spec_nodes($1,$2);}
               | type_specifier                              {$$ = create_decl_spec_node($1,UNKNOWN_SC,NONE_TQ);}
-              | type_specifier decl_specifier               {astnode *type_spec = create_decl_spec_node($1,0,NONE_TQ);
+              | type_specifier decl_specifier               {astnode *type_spec = create_decl_spec_node($1,UNKNOWN_SC,NONE_TQ);
                                                              $$ = merge_decl_spec_nodes(type_spec, $2);}
               | type_qualifier                              {$$ = create_decl_spec_node(0,UNKNOWN_SC,$1);}
               | type_qualifier decl_specifier               {astnode *type_qual = create_decl_spec_node(0,UNKNOWN_SC,$1);
@@ -445,6 +445,7 @@ int main() {
 
 int yyerror (char const *s) {
     fprintf(stderr, "%s\n", s);
+    return 0;
 }
 
 // Prints number of indents given
@@ -701,7 +702,7 @@ void print_ast(astnode *node, int num_indents) {
             
             switch(node->ast_sym_entry.sym_type) {
                 case VAR_TYPE:
-                    fprintf(stdout, "Storage Class: %s.\nDATA TYPE:\n", storageClassToString(node->ast_sym_entry.ident_var.storage_class));
+                    fprintf(stdout, "Storage Class: %s.\nDATA TYPE:\n%s", storageClassToString(node->ast_sym_entry.ident_var.storage_class), typeQualToString(node->ast_sym_entry.ident_var.type_qual));
                     print_ast(node->ast_sym_entry.sym_node, num_indents+1);
 
                     break;
@@ -711,6 +712,7 @@ void print_ast(astnode *node, int num_indents) {
 
                     break;
             }
+            break;
 
 
         default:
