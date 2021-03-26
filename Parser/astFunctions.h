@@ -342,12 +342,16 @@ astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec);
 // Merges declarator specifiers with declarator list
 astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list);
 
+// Fills declarator specifier with necessary default values
+void fill_defaults(astnode *specifier);
+
 // Combines pointer into declarator symbol table entry
 astnode *build_declarator(astnode *ptr, astnode *declarator);
 
 // Combines pointer into abstract declarator
 astnode *build_abstract_declarator(astnode *ptr, astnode *declarator);
 
+// Creates type-name node
 astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl);
 
 // Type Nodes
@@ -380,6 +384,9 @@ astnode *create_arr_fnc_sym_entry(astnode *sym_table_entry, int type_to_add, int
 
 // Converts storage class enum to string for printing
 char *storageClassToString(int storage_class);
+
+// Converts type qualifier enum to string for printing
+char *typeQualToString(int type_qual);
 
 // Converts scalar node to string representing value
 char *scalarToString(astnode *scalar_node);

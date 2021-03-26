@@ -209,6 +209,7 @@ astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec) {
             decl_spec->ast_decl_spec.type_specifier->ast_scalar.is_signed = addition->ast_decl_spec.type_specifier->ast_scalar.is_signed;    
         } 
         else {
+            fprintf(stderr,"ERROR: Cannot merge declarator specifiers.\n");
             // ERROR
         }
     }
@@ -227,7 +228,7 @@ astnode *merge_decl_spec_nodes(astnode* addition, astnode *decl_spec) {
         decl_spec->ast_decl_spec.type_qual = decl_spec->ast_decl_spec.type_qual | addition->ast_decl_spec.type_qual;
 
         // Removes NONE_TQ bit if needed
-        decl_spec->ast_decl_spec.type_qual = decl_spec->ast_decl_spec.type_qual && 1110;
+        decl_spec->ast_decl_spec.type_qual = decl_spec->ast_decl_spec.type_qual & 0b1110;
     }
     // Checks inline
     else if(addition->ast_decl_spec.is_inline == 1) {
@@ -250,6 +251,9 @@ astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list) {
     // Updates symbol table entry list
     do {
         curr_sym_entry = curr_list_node->node;
+
+        // Fills in necessary default values for the declarator specifier
+        fill_defaults(spec);
 
         // Adds specifiers depending on declarator type
         switch(curr_sym_entry->ast_sym_entry.sym_type) {
@@ -282,6 +286,33 @@ astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list) {
 
     // Returns new symbol table entry list
     return decl_list;
+}
+
+// Fills declarator specifier with necessary default values
+void fill_defaults(astnode *specifier) {
+    // Checks if storage class is needed
+    if(specifier->ast_decl_spec.storage_class == UNKNOWN_SC) {
+        // Checks current scope
+        int curr_scope = getInnerScope()->scope;
+        if(curr_scope == FILE_SCOPE) {
+            specifier->ast_decl_spec.storage_class = EXTERN_SC;
+        } else {
+            specifier->ast_decl_spec.storage_class = AUTO_SC;
+        }
+    }
+
+    // Checks if type specifier is missing
+    if(specifier->ast_decl_spec.type_specifier == NULL) {
+        specifier->ast_decl_spec.type_specifier = create_scalar_node(INT_ST,SIGNED_SS);
+    }
+    // Checks if Scalar type specifier is missing type
+    if(specifier->ast_decl_spec.type_specifier->ast_scalar.scalar_type == UNKNOWN_ST) {
+        specifier->ast_decl_spec.type_specifier->ast_scalar.scalar_type = INT_ST;
+    }
+    // Checks if Scalar type specifier is missing sign
+    if(specifier->ast_decl_spec.type_specifier->ast_scalar.is_signed == UNKNOWN_SS) {
+        specifier->ast_decl_spec.type_specifier->ast_scalar.is_signed = SIGNED_SS;
+    }
 }
 
 // Combines pointer into declarator symbol table entry
@@ -440,7 +471,7 @@ astnode *create_pointer_node(astnode *parent_ptr, astnode *type_qual_list) {
     new_pointer->ast_pointer.type_qual = type_qual_list->ast_decl_spec.type_qual;
 
     // Checks if no parent pointer (returns new pointer)
-    if(parent_ptr = NULL) {
+    if(parent_ptr == NULL) {
         return new_pointer;
     }
 
@@ -638,6 +669,27 @@ char *storageClassToString(int storage_class) {
     }
 }
 
+// Converts type qualifier enum to string for printing
+// TODO: Use bitwise and to check each type
+char *typeQualToString(int type_qual) {
+    char *type_qual_string = malloc(25 * sizeof(char));
+    
+    // Checks if const
+    if(type_qual & 0b10) {
+        strcat(type_qual_string,"CONST ");
+    }
+    // Checks if volatile
+    if(type_qual & 0b100) {
+        strcat(type_qual_string,"VOLATILE ");
+    }
+    // Checks if restrict
+    if(type_qual & 0b1000) {
+        strcat(type_qual_string,"RESTRICT ");
+    }
+
+    return type_qual_string;
+}
+
 char *scalarToString(astnode *scalar_node) {
     char *scalar_sign;
     char *scalar_type;
@@ -649,8 +701,9 @@ char *scalarToString(astnode *scalar_node) {
             break;
         case UNSIGNED_SS:
             scalar_sign = "UNSIGNED ";
+            break;
         case UNKNOWN_SS:
-            scalar_sign = "";
+            scalar_sign = "UNKNOWN ";
     }
 
     // Converts Type
