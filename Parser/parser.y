@@ -400,6 +400,10 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                      $<node>$->ast_sym_entry.ident_fnc_name.storage_class = EXTERN_SC;
                                      $<node>$->ast_sym_entry.ident_fnc_name.is_inline = $1->ast_decl_spec.is_inline;
                                      $<node>$->ast_sym_entry.ident_fnc_name.is_defined = 1;
+                                     $<node>$->ast_sym_entry.ident_fnc_name.arg_types = NULL;
+
+                                     // Sets return type
+                                     build_declarator($1->ast_decl_spec.type_specifier,$<node>$); 
 
                                      if(add_to_scope) {
                                          addEntryToNamespace(OTHER_NS,$<node>$,0);
@@ -709,6 +713,9 @@ void print_ast(astnode *node, int num_indents) {
                 case FNC_NAME_TYPE:
                     fprintf(stdout, "Storage Class: %s.\nRETURN TYPE:\n", storageClassToString(node->ast_sym_entry.ident_fnc_name.storage_class));
                     print_ast(node->ast_sym_entry.ident_fnc_name.return_type, num_indents+1);
+                    
+                    // Prints scope definitions
+                    /* print_ast(node->ast_sym_entry.sym_node, num_indents); */
 
                     break;
             }
@@ -719,8 +726,9 @@ void print_ast(astnode *node, int num_indents) {
             fprintf(stdout, "ERROR: UNKNOWN NODE\n");
     }
 
-    // Separates expressions
+    // Separates expressions in output
     if(num_indents == 0) {
         fprintf(stdout, "\n\n");
+        fprintf(stderr, "\n\n");
     }
 }
