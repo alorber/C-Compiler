@@ -22,7 +22,7 @@ int line_number = 1;
 
 /* STATES */
 %x FILE_INFO
-%x CHAR
+%x CHAR_STATE
 %x STR
 %x INT_NUM
 %x FLOAT_NUM
@@ -171,12 +171,12 @@ _Imaginary      {return _IMAGINARY;}
                              return IDENT;}
 
  /* CHARACTER LITERALS */
-[LuU]?\'                    {BEGIN CHAR;
-                             create_string();}
-<CHAR>[^\'\\\n]             {append_string(yytext);}
-<CHAR>\'                    {BEGIN INITIAL;
-                             yylval.string = complete_string(1);
-                             return CHARLIT;}
+[LuU]?\'                            {BEGIN CHAR_STATE;
+                                    create_string();}
+<CHAR_STATE>[^\'\\\n]               {append_string(yytext);}
+<CHAR_STATE>\'                      {BEGIN INITIAL;
+                                    yylval.string = complete_string(1);
+                                    return CHARLIT;}
 
  /* STRINGS */
 [LuU]?\"                    {BEGIN STR;
@@ -189,19 +189,19 @@ _Imaginary      {return _IMAGINARY;}
  /* ESCAPE SEQUENCES (STRING & CHAR) */
 
  /* Simple */
-<CHAR,STR>\\[abfrntv0\'\"\\]      {append_escape(yytext,0);}
+<CHAR_STATE,STR>\\[abfrntv0\'\"\\]      {append_escape(yytext,0);}
 
  /* Octal */
-<CHAR,STR>\\[0-7]{1,3}            {append_escape(yytext,8);}
+<CHAR_STATE,STR>\\[0-7]{1,3}            {append_escape(yytext,8);}
 
  /* Hex */
-<CHAR,STR>\\x[a-fA-F0-9]+         {append_escape(yytext,16);}
+<CHAR_STATE,STR>\\x[a-fA-F0-9]+         {append_escape(yytext,16);}
 
  /* ERRORS */
-<CHAR,STR>\n            {print_error(filename,line_number,yytext,"Unterminated string/char.");
-                         line_number++;}
-<CHAR,STR>.             {print_error(filename,line_number,yytext,"Unknown character.");}
-.                       {print_error(filename,line_number,yytext,"Unknown character.");}
+<CHAR_STATE,STR>\n              {print_error(filename,line_number,yytext,"Unterminated string/char.");
+                                line_number++;}
+<CHAR_STATE,STR>.               {print_error(filename,line_number,yytext,"Unknown character.");}
+.                               {print_error(filename,line_number,yytext,"Unknown character.");}
 
 %%
 /* ----------- */
