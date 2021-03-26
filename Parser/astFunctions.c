@@ -547,6 +547,7 @@ astnode *create_sym_table_entry(char *ident) {
     sym_entry->node_type = SYM_ENTRY_TYPE;
     sym_entry->ast_sym_entry.symbol = ident;
     sym_entry->ast_sym_entry.sym_type = VAR_TYPE;  // Defaults to variable type
+    sym_entry->ast_sym_entry.sym_node = NULL;
 
     return sym_entry;
 }
