@@ -50,3 +50,14 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Bison Files
+parser
+parser.tab.*
+parser.output
+
+# Lexer Files
+lexer.yy.*
+
+# Mac Files
+.DS_Store
