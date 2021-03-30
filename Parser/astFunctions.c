@@ -480,9 +480,9 @@ astnode *create_pointer_node(astnode *parent_ptr, astnode *type_qual_list) {
     new_pointer->node_type = POINTER_TYPE;
 
     if(type_qual_list == NULL) {
-        new_pointer->ast_pointer.type_qual = NULL;
+        new_pointer->ast_pointer.type_qual = NONE_TQ;
     } else {
-            new_pointer->ast_pointer.type_qual = type_qual_list->ast_decl_spec.type_qual;
+        new_pointer->ast_pointer.type_qual = type_qual_list->ast_decl_spec.type_qual;
     }
 
     // Checks if no parent pointer (returns new pointer)
@@ -594,6 +594,8 @@ astnode *create_sym_table_entry(char *ident) {
     sym_entry->ast_sym_entry.symbol = ident;
     sym_entry->ast_sym_entry.sym_type = VAR_TYPE;  // Defaults to variable type
     sym_entry->ast_sym_entry.sym_node = NULL;
+    sym_entry->ast_sym_entry.filename = strdup(filename);
+    sym_entry->ast_sym_entry.line_num = line_number;
 
     return sym_entry;
 }

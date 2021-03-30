@@ -12,6 +12,11 @@
 #include "numType.h"
 #include "symbol_table.h"
 
+// Uses values from lexer
+extern char filename[256];
+extern int line_number;
+
+
 extern int yylex();
 
 // Enum of AST node types

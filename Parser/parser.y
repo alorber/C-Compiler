@@ -220,8 +220,8 @@ expr: assignment_expr               {$$ = $1;}
 * -------------- */
 
 // Top level of language
-decl_or_fnc_def_list: decl_or_fnc_def                       {}
-                    | decl_or_fnc_def_list decl_or_fnc_def  {}
+decl_or_fnc_def_list: decl_or_fnc_def                       {fprintf(stderr,"\n\n");}
+                    | decl_or_fnc_def_list decl_or_fnc_def  {fprintf(stderr,"\n\n");}
 
 
 decl_or_fnc_def: declaration    {print_ast($1,0);}
@@ -395,8 +395,8 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                      }
                                      /* Merges decl_specifier & declarator */
                                      $<node>$->ast_sym_entry.sym_type = FNC_NAME_TYPE;
-                                     $<node>$->ast_sym_entry.filename = "TBD";  /*strdup(filename)*/
-                                     $<node>$->ast_sym_entry.line_num = 1; /*line_number*/
+                                     $<node>$->ast_sym_entry.filename = strdup(filename);
+                                     $<node>$->ast_sym_entry.line_num = line_number;
                                      $<node>$->ast_sym_entry.ident_fnc_name.storage_class = EXTERN_SC;
                                      $<node>$->ast_sym_entry.ident_fnc_name.is_inline = $1->ast_decl_spec.is_inline;
                                      $<node>$->ast_sym_entry.ident_fnc_name.is_defined = 1;
@@ -411,7 +411,7 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                     }
          compound_stmt              {$$ = $<node>3;
                                      $$->ast_sym_entry.sym_node = $4;
-                                     }
+                                    }
        ;
     
 compound_stmt: '{'                      {/* Creates new scope */
@@ -658,7 +658,7 @@ void print_ast(astnode *node, int num_indents) {
             // Print each node in list
             astnode_list_entry *curr_node = &(node->ast_node_list_head);
             while(curr_node != NULL) {
-                print_ast(curr_node->node, num_indents+1);
+                print_ast(curr_node->node, num_indents);
                 curr_node = curr_node->next;
             }
 
@@ -721,8 +721,8 @@ void print_ast(astnode *node, int num_indents) {
 
                     break;
             }
-            break;
 
+            break;
 
         default:
             fprintf(stdout, "ERROR: UNKNOWN NODE\n");
