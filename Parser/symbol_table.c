@@ -210,6 +210,8 @@ void createNewScope(int scope_type) {
     }
 
     new_scope->scope = scope_type;
+    new_scope->scope_start_file = strdup(filename);
+    new_scope->scope_start_line = line_number;
 
     // Creates symbol tables for each namespace
     for(int i = 0; i < 3; i++) {
@@ -268,3 +270,24 @@ astnode *searchScopeStack(char *symbol, int symbol_namespace) {
     return NULL;
 }
 
+// Printing Functions
+// -------------------
+
+char *scopeTypeToString(int scope_type) {
+    switch(scope_type) {
+        case FILE_SCOPE:
+            return "FILE";
+
+        case BLOCK_SCOPE:
+            return "BLOCK";
+    
+        case FUNCTION_SCOPE:
+            return "FUNCTION";
+
+        case PROTOTYPE_SCOPE:
+            return "PROTOTYPE";
+
+        default:
+            return "UNKNOWN";
+    }
+}

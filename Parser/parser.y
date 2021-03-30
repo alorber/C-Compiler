@@ -225,7 +225,7 @@ decl_or_fnc_def_list: decl_or_fnc_def                       {fprintf(stderr,"\n\
 
 
 decl_or_fnc_def: declaration    {print_ast($1,0);}
-               | fnc_def        {print_ast($1,0);}
+               | fnc_def        {}
                ;
 
 declaration: decl_specifier ';'                   {$$ = $1; /* Not sure what to do here */}
@@ -407,7 +407,10 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
 
                                      if(add_to_scope) {
                                          addEntryToNamespace(OTHER_NS,$<node>$,0);
-                                     } 
+                                     }
+                                    
+                                     // Prints function declaration
+                                     print_ast($<node>$,0);
                                     }
          compound_stmt              {$$ = $<node>3;
                                      $$->ast_sym_entry.sym_node = $4;
@@ -422,8 +425,10 @@ compound_stmt: '{'                      {/* Creates new scope */
                                          }
              ;
 
-decl_or_stmt_list: decl_or_stmt                     {$$ = init_node_list($1);}
-                 | decl_or_stmt_list decl_or_stmt   {$$ = add_node_to_list($1,$2);}
+decl_or_stmt_list: decl_or_stmt                     {$$ = init_node_list($1);
+                                                     print_ast($1,0);}
+                 | decl_or_stmt_list decl_or_stmt   {$$ = add_node_to_list($1,$2);
+                                                     print_ast($2,0);}
                  ;
 
 decl_or_stmt: declaration   {$$ = $1;}
@@ -702,22 +707,24 @@ void print_ast(astnode *node, int num_indents) {
 
         case SYM_ENTRY_TYPE:
             fprintf(stdout, "SYMBOL %s as %s @ line %i in file %s.\n", node->ast_sym_entry.symbol, identTypeToString(node->ast_sym_entry.sym_type), node->ast_sym_entry.line_num, node->ast_sym_entry.filename);
-            fprintf(stdout, "In scope %s @ line %i in file %s.\n", "TODO",0,"TODO");
+            
+            // Gets scope of variable
+            scopeEntry *curr_scope = getInnerScope();
+            
+            fprintf(stdout, "In %s scope, which began @ line %i in file %s.\n", scopeTypeToString(curr_scope->scope), curr_scope->scope_start_line, curr_scope->scope_start_file);
             
             switch(node->ast_sym_entry.sym_type) {
                 case VAR_TYPE:
-                    fprintf(stdout, "Storage Class: %s.\nDATA TYPE:\n%s", storageClassToString(node->ast_sym_entry.ident_var.storage_class), typeQualToString(node->ast_sym_entry.ident_var.type_qual));
+                    fprintf(stdout, "Storage Class: %s.\nDATA TYPE:\n", storageClassToString(node->ast_sym_entry.ident_var.storage_class));
+                    print_indents(num_indents+1);
+                    fprintf(stdout,"%s",typeQualToString(node->ast_sym_entry.ident_var.type_qual));
                     print_ast(node->ast_sym_entry.sym_node, num_indents+1);
 
                     break;
+                    
                 case FNC_NAME_TYPE:
                     fprintf(stdout, "Storage Class: %s.\nRETURN TYPE:\n", storageClassToString(node->ast_sym_entry.ident_fnc_name.storage_class));
                     print_ast(node->ast_sym_entry.ident_fnc_name.return_type, num_indents+1);
-                    
-                    // Prints scope definitions
-                    if(node->ast_sym_entry.sym_node != NULL) {
-                        print_ast(node->ast_sym_entry.sym_node, num_indents);
-                    }
 
                     break;
             }
@@ -730,7 +737,7 @@ void print_ast(astnode *node, int num_indents) {
 
     // Separates expressions in output
     if(num_indents == 0) {
-        fprintf(stdout, "\n\n");
+        fprintf(stdout, "\n");
         fprintf(stderr, "\n\n");
     }
 }

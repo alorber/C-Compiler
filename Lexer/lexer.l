@@ -62,7 +62,7 @@ P       [pP][+-]?{DEC}+
 "//".*\n            {line_number++;}
 "/*"                {BEGIN COMMENT;}
 <COMMENT>"*/"       {BEGIN INITIAL;}
-<COMMENT>.+         {/* Ignores comment */;}
+<COMMENT>.          {/* Ignores comment */;}
 <COMMENT>\n         {line_number++;}
 
  /* NUMBERS */

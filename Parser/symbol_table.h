@@ -38,6 +38,10 @@ typedef struct scopeEntry {
     int scope;  // Scope of symbol table
     struct symbolTable *sym_tables[3]; // Symbol table for each namespace (in order of enum above)
     struct scopeEntry *scope_up; // Next outer scope
+
+    // For debugging
+    char *scope_start_file;
+    int scope_start_line;
 } scopeEntry;
 
 // Scopes are stored in a linked-list / stack
@@ -99,5 +103,10 @@ scopeEntry *getInnerScope();
 
 // Searches entire scope stack for symbol, inner --> outer
 struct astnode *searchScopeStack(char *symbol, int symbol_namespace);
+
+// Printing Functions
+// -------------------
+
+char *scopeTypeToString(int scope_type);
 
 #endif // SYMBOLTABLE_H
