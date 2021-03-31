@@ -178,6 +178,24 @@ int addEntryToNamespace(int name_space, astnode *sym_entry, int replace) {
     
 }
 
+// Given symbol table, returns astnode list of table members
+astnode *getTableMembers(symbolTable *sym_table) {
+    astnode *node_list = NULL;
+
+    // Loops through table
+    for(int i = 0; i < sym_table->capacity; i++) {
+        if(sym_table->table[i]) {
+            if(node_list == NULL) {
+                node_list = init_node_list(sym_table->table[i]);
+            } else {
+                add_node_to_list(node_list, sym_table->table[i]);
+            }
+        }
+    }
+
+    return node_list;
+}
+
 // Scope Stack Functions
 // ----------------------
 

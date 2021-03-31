@@ -158,6 +158,24 @@ astnode* add_node_to_list(astnode *node_list, astnode *new_argument) {
     return node_list;
 }
 
+// Merges two node lists into one list
+astnode *merge_node_lists(astnode *node_list, astnode *list_to_merge) {
+    // Checks that list2 is actually a list
+    if(list_to_merge->node_type != NODE_LIST_TYPE) {
+        return add_node_to_list(node_list,list_to_merge);
+    }
+
+    // Get last node in list
+    astnode_list_entry *curr_node = &(node_list->ast_node_list_head);
+    while(curr_node->next != NULL) {
+        curr_node = curr_node->next;
+    }
+
+    curr_node->next = &(list_to_merge->ast_node_list_head);
+    
+    return node_list;
+}
+
 // Creates number node with value of 1
 // Helper function for "++" and "--"
 astnode* create_num_one_node() {
@@ -305,14 +323,19 @@ void fill_defaults(astnode *specifier) {
     if(specifier->ast_decl_spec.type_specifier == NULL) {
         specifier->ast_decl_spec.type_specifier = create_scalar_node(INT_ST,SIGNED_SS);
     }
-    // Checks if Scalar type specifier is missing type
-    if(specifier->ast_decl_spec.type_specifier->ast_scalar.scalar_type == UNKNOWN_ST) {
-        specifier->ast_decl_spec.type_specifier->ast_scalar.scalar_type = INT_ST;
+
+    // Checks if Scalar type (as opposed to struct / union)
+    if(specifier->ast_decl_spec.type_specifier->node_type == SCALAR_TYPE) {
+        // Checks if Scalar type specifier is missing type
+        if(specifier->ast_decl_spec.type_specifier->ast_scalar.scalar_type == UNKNOWN_ST) {
+            specifier->ast_decl_spec.type_specifier->ast_scalar.scalar_type = INT_ST;
+        }
+        // Checks if Scalar type specifier is missing sign
+        if(specifier->ast_decl_spec.type_specifier->ast_scalar.is_signed == UNKNOWN_SS) {
+            specifier->ast_decl_spec.type_specifier->ast_scalar.is_signed = SIGNED_SS;
+        } 
     }
-    // Checks if Scalar type specifier is missing sign
-    if(specifier->ast_decl_spec.type_specifier->ast_scalar.is_signed == UNKNOWN_SS) {
-        specifier->ast_decl_spec.type_specifier->ast_scalar.is_signed = SIGNED_SS;
-    }
+    
 }
 
 // Combines pointer into declarator symbol table entry
@@ -678,6 +701,78 @@ astnode *create_arr_fnc_sym_entry(astnode *sym_table_entry, int type_to_add, int
 
 }
 
+// Creates struct / union symbol table entry or returns previously defined entry
+astnode *create_struct_union_sym_entry(int struct_or_union, char *ident, int is_abstract) {
+    astnode *struct_union_node = allocate_node_mem();
+    struct_union_node->node_type = SYM_ENTRY_TYPE;
+    struct_union_node->ast_sym_entry.sym_type = STRUCT_UNION_TAG_TYPE;
+    struct_union_node->ast_sym_entry.symbol = ident;
+    struct_union_node->ast_sym_entry.sym_node = NULL;
+    struct_union_node->ast_sym_entry.ident_struct_union_tag.is_struct = struct_or_union; 
+    struct_union_node->ast_sym_entry.ident_struct_union_tag.sym_table = NULL;
+    struct_union_node->ast_sym_entry.ident_struct_union_tag.is_defined = 0;
+
+    // If not abstract, checks if already defined
+    if(is_abstract == 0) {
+        astnode *lookup = searchTable(getInnerScope()->sym_tables[TAG_NS],ident);
+
+        if(lookup) {
+            free(struct_union_node);
+            struct_union_node = lookup;
+
+            if(struct_union_node->ast_sym_entry.ident_struct_union_tag.is_defined) {
+                // Already defined
+                return struct_union_node;
+            }
+        }
+        // Else, adds to symbol table
+        else {
+            addEntryToNamespace(TAG_NS,struct_union_node,0);
+        }
+    }
+
+    // Sets it here, in case it needs to update info on previously created struct / union
+    struct_union_node->ast_sym_entry.filename = strdup(filename);
+    struct_union_node->ast_sym_entry.line_num = line_number;
+
+    return struct_union_node;    
+}
+
+// Adds struct / union members to struct / union symbol table
+int add_struct_union_members(astnode *struct_union_node, astnode *members) {
+    // Checks if previously defined
+    if(struct_union_node->ast_sym_entry.symbol != NULL) {
+        astnode *lookup = searchTable(getInnerScope()->sym_tables[TAG_NS],struct_union_node->ast_sym_entry.symbol);
+
+        if(lookup && struct_union_node->ast_sym_entry.ident_struct_union_tag.is_defined) {
+                // ERROR - Already defined
+                fprintf(stderr,"ERROR: Struct / Union %s already defined @ line %i in file %s.\n", struct_union_node->ast_sym_entry.symbol, struct_union_node->ast_sym_entry.line_num, struct_union_node->ast_sym_entry.filename);
+                return -1;
+        }
+    }
+
+
+    // Creates symbol table
+    struct_union_node->ast_sym_entry.ident_struct_union_tag.sym_table = createTable();
+
+    // Loops through members
+    int return_val = 1;
+    astnode_list_entry *curr_list_node = &(members->ast_node_list_head);
+    while(curr_list_node != NULL) {
+        // Adds member to symbol table
+        if(addEntryToTable(struct_union_node->ast_sym_entry.ident_struct_union_tag.sym_table,
+        curr_list_node->node,0) == -1) {
+            return_val = -1;
+        }
+        curr_list_node = curr_list_node->next;
+    }
+
+    // Sets as complete
+    struct_union_node->ast_sym_entry.ident_struct_union_tag.is_defined = 1;
+
+    return return_val;
+}
+
 // Printing Functions
 // -------------------
 
@@ -783,7 +878,9 @@ char *scalarToString(astnode *scalar_node) {
 }
 
 // Converts IDENT type enum to string for printing
-char *identTypeToString(int ident_type) {
+char *identTypeToString(astnode *node) {
+    int ident_type = node->ast_sym_entry.sym_type;
+
     switch(ident_type) {
         case VAR_TYPE:
             return "VAR";
@@ -794,7 +891,11 @@ char *identTypeToString(int ident_type) {
         case ENUM_CONST_TYPE:
             return "ENUM CONSTANT";
         case STRUCT_UNION_TAG_TYPE:
-            return "STRUCT / UNION TAG";
+            if(node->ast_sym_entry.ident_struct_union_tag.is_struct == 1) {
+                return "STRUCT";
+            } else {
+                return "UNION";
+            }
         case ENUM_TAG_TYPE:
             return "ENUM TAG";
         case LABEL_TYPE:

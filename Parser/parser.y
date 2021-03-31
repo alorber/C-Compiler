@@ -33,10 +33,10 @@
 %token<op> INDSEL PLUSPLUS MINUSMINUS SHL SHR LTEQ GTEQ EQEQ NOTEQ
 %token<op> LOGAND LOGOR TIMESEQ DIVEQ MODEQ PLUSEQ MINUSEQ SHLEQ SHREQ
 %token<op> ANDEQ OREQ XOREQ SIZEOF
-%token ELLIPSIS AUTO BREAK CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE 
-%token ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE INT LONG REGISTER 
-%token RESTRICT RETURN SHORT SIGNED STATIC STRUCT SWITCH TYPEDEF UNION 
-%token UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
+%token<op> ELLIPSIS AUTO BREAK CASE CHAR CONST CONTINUE DEFAULT DO DOUBLE 
+%token<op> ELSE ENUM EXTERN FLOAT FOR GOTO IF INLINE INT LONG REGISTER 
+%token<op> RESTRICT RETURN SHORT SIGNED STATIC STRUCT SWITCH TYPEDEF UNION 
+%token<op> UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 
 /* Types (in order of grammar) */
 %type<node> start_expr primary_expr postfix_expr function_call expr_list unary_expr
@@ -49,7 +49,8 @@
 %type<op> '=' '<' '>' '!' '~' '(' ')' '[' ']' '.'
 %type<node> decl_or_fnc_def declaration decl_specifier init_decl_list init_decl
 %type<node> storage_class_specifier type_specifier struct_union_specifier
-%type<node> struct_union struct_decl_list struct_decl spec_qual_list 
+%type<op> struct_union
+%type<node> struct_decl_list struct_decl spec_qual_list 
 %type<node> struct_declarator_list struct_declarator enum_specifier 
 %type<op> type_qualifier
 %type<node> fnc_specifier declarator dir_declarator pointer type_qualifier_list
@@ -87,8 +88,8 @@
 /* EXPRESSIONS
 * -------------- */
 
-start_expr: expr ';'                {print_ast($1,0);}
-          | start_expr expr ';'     {print_ast($2,0);}
+start_expr: expr ';'                {print_ast($1,0,0);}
+          | start_expr expr ';'     {print_ast($2,0,0);}
           ;
 
 primary_expr: IDENT           {$$ = create_ident_node($1);}
@@ -224,11 +225,11 @@ decl_or_fnc_def_list: decl_or_fnc_def                       {fprintf(stderr,"\n\
                     | decl_or_fnc_def_list decl_or_fnc_def  {fprintf(stderr,"\n\n");}
 
 
-decl_or_fnc_def: declaration    {print_ast($1,0);}
+decl_or_fnc_def: declaration    {print_ast($1,0,0);}
                | fnc_def        {}
                ;
 
-declaration: decl_specifier ';'                   {$$ = $1; /* Not sure what to do here */}
+declaration: decl_specifier ';'                   {$$ = $1;}
            | decl_specifier init_decl_list ';'    {$$ = merge_spec_decl_list($1,$2);
                                                    addEntryToNamespace(OTHER_NS,$$,0);}
            ;
@@ -283,22 +284,29 @@ type_specifier: VOID                    {$$ = create_scalar_node(VOID_ST, UNKNOW
               /*| typedef_name            {$$ = $1;} Typedefs not supported*/
               ;
 
-struct_union_specifier: struct_union '{' struct_decl_list '}'           {}
-                      | struct_union IDENT '{' struct_decl_list '}'     {}
-                      | struct_union IDENT   /* Reference */            {}
+struct_union_specifier: struct_union '{' struct_decl_list '}'           {$$ = create_struct_union_sym_entry($1,NULL,1);
+                                                                         add_struct_union_members($$,$3);}
+                      | struct_union IDENT                              {$<node>$ = create_struct_union_sym_entry($1,$2,0);}
+                        '{' struct_decl_list '}'                        {add_struct_union_members($<node>3,$5);
+                                                                         $$ = $<node>3;
+                                                                         /* Prints Struct / Union */
+                                                                         print_ast($<node>$,0,0);
+                                                                         fprintf(stdout,"MEMBERS:\n");
+                                                                         print_ast($5,1,1);
+                                                                         fprintf(stdout,"\n");}
+                      | struct_union IDENT   /* Reference */            {$$ = create_struct_union_sym_entry($1,$2,0);}
                       ;
 
-struct_union: STRUCT    {}
-            | UNION     {}
+struct_union: STRUCT    {$$ = 1;}
+            | UNION     {$$ = 0;}
             ;
 
-struct_decl_list: struct_decl                    {}
-                | struct_decl_list struct_decl   {}
+struct_decl_list: struct_decl                    {$$ = $1;}
+                | struct_decl_list struct_decl   {$$ = merge_node_lists($1,$2);}
                 ;
 
-struct_decl: spec_qual_list ';'                         {/* Not sure what to do here */}
-           | spec_qual_list struct_declarator_list ';'  {$$ = merge_spec_decl_list($1,$2);
-                                                         /* Add to struct & union */}
+struct_decl: spec_qual_list ';'                         {$$ = $1;}
+           | spec_qual_list struct_declarator_list ';'  {$$ = merge_spec_decl_list($1,$2);}
            ;
 
 spec_qual_list: type_specifier                  {$$ = create_decl_spec_node($1,UNKNOWN_SC,NONE_TQ);}
@@ -410,7 +418,7 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                      }
                                     
                                      // Prints function declaration
-                                     print_ast($<node>$,0);
+                                     print_ast($<node>$,0,0);
                                     }
          compound_stmt              {$$ = $<node>3;
                                      $$->ast_sym_entry.sym_node = $4;
@@ -426,9 +434,9 @@ compound_stmt: '{'                      {/* Creates new scope */
              ;
 
 decl_or_stmt_list: decl_or_stmt                     {$$ = init_node_list($1);
-                                                     print_ast($1,0);}
+                                                     print_ast($1,0,0);}
                  | decl_or_stmt_list decl_or_stmt   {$$ = add_node_to_list($1,$2);
-                                                     print_ast($2,0);}
+                                                     print_ast($2,0,0);}
                  ;
 
 decl_or_stmt: declaration   {$$ = $1;}
@@ -466,10 +474,13 @@ void print_indents(int num_indents) {
 }
 
 // Prints AST
-void print_ast(astnode *node, int num_indents) {
+void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
     fprintf(stderr,"PRINTING node type %i\n",node->node_type);
+
     // Prints indents
-    print_indents(num_indents);
+    if(node->node_type != NODE_LIST_TYPE) {
+        print_indents(num_indents);
+    }
 
     // Checks type for printing
     switch(node->node_type) {
@@ -513,7 +524,7 @@ void print_ast(astnode *node, int num_indents) {
             }
 
             // Prints sub-node
-            print_ast(node->ast_unary_op.expr,num_indents+1);
+            print_ast(node->ast_unary_op.expr,num_indents+1, is_struct_union_member);
 
             break;
 
@@ -570,25 +581,25 @@ void print_ast(astnode *node, int num_indents) {
             }
 
             // Prints sub-nodes
-            print_ast(node->ast_binary_op.left_expr, num_indents+1);
-            print_ast(node->ast_binary_op.right_expr, num_indents+1);
+            print_ast(node->ast_binary_op.left_expr, num_indents+1, is_struct_union_member);
+            print_ast(node->ast_binary_op.right_expr, num_indents+1, is_struct_union_member);
 
             break;
 
         case TERNARY_TYPE:
             // IF
             fprintf(stdout, "TERNARY OP, IF:\n");
-            print_ast(node->ast_ternary_op.if_expr, num_indents+1);
+            print_ast(node->ast_ternary_op.if_expr, num_indents+1, is_struct_union_member);
 
             // THEN
             print_indents(num_indents);
             fprintf(stdout, "THEN:\n");
-            print_ast(node->ast_ternary_op.then_expr, num_indents+1);
+            print_ast(node->ast_ternary_op.then_expr, num_indents+1, is_struct_union_member);
 
             // ELSE
             print_indents(num_indents);
             fprintf(stdout, "ELSE:\n");
-            print_ast(node->ast_ternary_op.else_expr, num_indents+1);
+            print_ast(node->ast_ternary_op.else_expr, num_indents+1, is_struct_union_member);
 
             break;
 
@@ -642,7 +653,7 @@ void print_ast(astnode *node, int num_indents) {
             fprintf(stdout, "FNCALL, %i arguments\n", node->ast_fnc_call.num_arguments);
 
             // Prints function name
-            print_ast(node->ast_fnc_call.function_name, num_indents+1);
+            print_ast(node->ast_fnc_call.function_name, num_indents+1, is_struct_union_member);
 
             // Checks for empty expr_list
             if(node->ast_fnc_call.expr_list_head == NULL) {
@@ -654,7 +665,7 @@ void print_ast(astnode *node, int num_indents) {
             for(int arg_number = 1; curr_argument != NULL; arg_number++, curr_argument = curr_argument->next) {
                 print_indents(num_indents);
                 fprintf(stdout, "arg #%i=\n", arg_number);
-                print_ast(curr_argument->node, num_indents+1);
+                print_ast(curr_argument->node, num_indents+1, is_struct_union_member);
             }
             
             break;
@@ -663,7 +674,7 @@ void print_ast(astnode *node, int num_indents) {
             // Print each node in list
             astnode_list_entry *curr_node = &(node->ast_node_list_head);
             while(curr_node != NULL) {
-                print_ast(curr_node->node, num_indents);
+                print_ast(curr_node->node, num_indents, is_struct_union_member);
                 curr_node = curr_node->next;
             }
 
@@ -685,46 +696,75 @@ void print_ast(astnode *node, int num_indents) {
 
         case POINTER_TYPE:
             fprintf(stdout, "POINTER to:\n");
-            print_ast(node->ast_pointer.pointer_type, num_indents+1);
+            print_ast(node->ast_pointer.pointer_type, num_indents+1, is_struct_union_member);
 
             break;
 
         case ARRAY_TYPE:
             fprintf(stdout, "ARRAY of length %i of type:\n", node->ast_array.arr_size);
-            print_ast(node->ast_array.arr_type, num_indents+1);
+            print_ast(node->ast_array.arr_type, num_indents+1, is_struct_union_member);
 
             break;
 
         case FUNCTION_TYPE:
             fprintf(stdout, "FUNCTION with return type:\n");
-            print_ast(node->ast_function.return_type, num_indents+1);
+            print_ast(node->ast_function.return_type, num_indents+1, is_struct_union_member);
 
-            break;
-
-        case STRUCT_UNION_TYPE:
-            // TODO
             break;
 
         case SYM_ENTRY_TYPE:
-            fprintf(stdout, "SYMBOL %s as %s @ line %i in file %s.\n", node->ast_sym_entry.symbol, identTypeToString(node->ast_sym_entry.sym_type), node->ast_sym_entry.line_num, node->ast_sym_entry.filename);
-            
-            // Gets scope of variable
-            scopeEntry *curr_scope = getInnerScope();
-            
-            fprintf(stdout, "In %s scope, which began @ line %i in file %s.\n", scopeTypeToString(curr_scope->scope), curr_scope->scope_start_line, curr_scope->scope_start_file);
+            fprintf(stdout, "SYMBOL %s as %s @ line %i in file %s.\n", node->ast_sym_entry.symbol, identTypeToString(node), node->ast_sym_entry.line_num, node->ast_sym_entry.filename);
+            print_indents(num_indents);
+
+            // Doesn't print if struct / union member
+            if(is_struct_union_member) {
+                fprintf(stdout, "In STRUCT / UNION scope.\n");
+            } else {
+                // Gets scope of variable
+                scopeEntry *curr_scope = getInnerScope();
+                fprintf(stdout, "In %s scope, which began @ line %i in file %s.\n", scopeTypeToString(curr_scope->scope), curr_scope->scope_start_line, curr_scope->scope_start_file);
+            }
             
             switch(node->ast_sym_entry.sym_type) {
                 case VAR_TYPE:
-                    fprintf(stdout, "Storage Class: %s.\nDATA TYPE:\n", storageClassToString(node->ast_sym_entry.ident_var.storage_class));
-                    print_indents(num_indents+1);
-                    fprintf(stdout,"%s",typeQualToString(node->ast_sym_entry.ident_var.type_qual));
-                    print_ast(node->ast_sym_entry.sym_node, num_indents+1);
+                    if(is_struct_union_member == 0) {
+                        print_indents(num_indents);
+                        fprintf(stdout, "Storage Class: %s.\n", storageClassToString(node->ast_sym_entry.ident_var.storage_class));
+                    }
+
+                    print_indents(num_indents);
+                    fprintf(stdout, "DATA TYPE:\n");
+
+                    if(node->ast_sym_entry.ident_var.type_qual != NONE_TQ) {
+                        print_indents(num_indents+1);
+                        fprintf(stdout,"%s",typeQualToString(node->ast_sym_entry.ident_var.type_qual));
+                    }
+                    
+                    print_ast(node->ast_sym_entry.sym_node, num_indents+1, is_struct_union_member);
 
                     break;
                     
                 case FNC_NAME_TYPE:
-                    fprintf(stdout, "Storage Class: %s.\nRETURN TYPE:\n", storageClassToString(node->ast_sym_entry.ident_fnc_name.storage_class));
-                    print_ast(node->ast_sym_entry.ident_fnc_name.return_type, num_indents+1);
+                    print_indents(num_indents);
+                    fprintf(stdout, "Storage Class: %s.\n", storageClassToString(node->ast_sym_entry.ident_fnc_name.storage_class));
+                    print_indents(num_indents);
+                    fprintf(stdout, "RETURN TYPE:\n");
+                    print_ast(node->ast_sym_entry.ident_fnc_name.return_type, num_indents+1, is_struct_union_member);
+
+                    break;
+
+                case STRUCT_UNION_TAG_TYPE:
+                    // Checks if defined && is anonymous (otherwise, the members were already printed)
+                    if(node->ast_sym_entry.ident_struct_union_tag.is_defined == 0) {
+                        print_indents(num_indents);
+                        fprintf(stdout, "INCOMPLETE STRUCT / UNION\n");
+                    } else if(node->ast_sym_entry.symbol == NULL) {
+                        print_indents(num_indents);
+                        fprintf(stdout, "MEMBERS: \n");
+                        print_ast(getTableMembers(node->ast_sym_entry.ident_struct_union_tag.sym_table),num_indents+1,1);   
+                    } else {
+                        return;
+                    }
 
                     break;
             }

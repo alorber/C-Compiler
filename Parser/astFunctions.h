@@ -16,7 +16,6 @@
 extern char filename[256];
 extern int line_number;
 
-
 extern int yylex();
 
 // Enum of AST node types
@@ -25,17 +24,17 @@ enum nodetype {
     BINARY_TYPE,
     TERNARY_TYPE,
     NUMBER_TYPE,
-    IDENT_TYPE,
+    IDENT_TYPE,  // 5
     STRING_TYPE,
     CHARLIT_TYPE,
     FUNCTION_CALL_TYPE,
     NODE_LIST_TYPE,
-    DECL_SPEC_TYPE,
+    DECL_SPEC_TYPE,  // 10
     TYPE_NAME_TYPE,
     SCALAR_TYPE,
     POINTER_TYPE,
     ARRAY_TYPE,
-    FUNCTION_TYPE,
+    FUNCTION_TYPE,  // 15
     STRUCT_UNION_TYPE,
     SYM_ENTRY_TYPE
 };
@@ -180,12 +179,6 @@ typedef struct astnode_function {
     struct astnode *arg_types;     // Argument types (ast node list)
 } astnode_function;
 
-// Struct & Union Type
-typedef struct astnode_struct_union {
-
-} astnode_struct_union;
-
-
 // Symbol Table Nodes
 // ------------------
 
@@ -219,8 +212,9 @@ typedef struct astnode_ident_enum_const {
 
 // Struct & Union Tag
 typedef struct astnode_ident_struct_union_tag {
+    int is_struct;                   // 1 if struct, 0 if union
     struct symbolTable *sym_table;   // Symbol Table of member definitions
-    int is_defined;           // Whether definition is complete (1 = yes)
+    int is_defined;                  // Whether definition is complete (1 = yes)
 } astnode_ident_struct_union_tag;
 
 // Enum Tag
@@ -235,7 +229,6 @@ typedef struct astnode_ident_label {
 
 // Struct & Union Member
 typedef struct astnode_ident_struct_union_member {
-    struct astnode *type;      // Type of member
     int offset;                // Offset within struct or union
     // Bit field width (Not supported)
     // Bit offset (Not supported)
@@ -255,12 +248,12 @@ enum ident_type {
 
 // Symbol table entry struct
 typedef struct astnode_sym_table_entry {
-    char *symbol;       // IDENT symbol
-    struct astnode *sym_node;  // Value of symbol
-    int sym_type;       // Type of symbol
+    char *symbol;               // IDENT symbol
+    struct astnode *sym_node;   // Value of symbol
+    int sym_type;               // Type of symbol
 
-    char *filename;     // File of symbol's first def.
-    int line_num;       // Line # of symbol's first def.
+    char *filename;             // File of symbol's first def.
+    int line_num;               // Line # of symbol's first def.
 
     // Structs for possible IDENT types
     union {
@@ -301,7 +294,6 @@ typedef struct astnode {
         astnode_pointer ast_pointer;
         astnode_array ast_array;
         astnode_function ast_function;
-        astnode_struct_union ast_struct_union;
 
         // Symbol Table Node
         astnode_sym_table_entry ast_sym_entry;
@@ -315,21 +307,22 @@ typedef struct astnode {
 // Expression Nodes
 // -----------------
 
-astnode* allocate_node_mem();
-astnode* create_unary_node(int op, astnode *expr); 
-astnode* create_binary_node(int op, astnode *left, astnode *right); 
-astnode* simplify_compound_op(int op, astnode *left, astnode *right); // For compound operators (i.e +=)
-astnode* create_ternary_node(astnode *if_expr, astnode *then_expr, astnode *else_expr); 
-astnode* create_number_node(num_type number); 
-astnode* create_ident_node(char *ident); 
-astnode* create_string_node(char *string); 
-astnode* create_char_node(char *charlit);
-astnode* create_fnc_call_node(astnode *function_name, astnode *expr_list);
-astnode* init_node_list(astnode* node_list_head);
-astnode* add_node_to_list(astnode *node_list, astnode *new_argument);
+astnode *allocate_node_mem();
+astnode *create_unary_node(int op, astnode *expr); 
+astnode *create_binary_node(int op, astnode *left, astnode *right); 
+astnode *simplify_compound_op(int op, astnode *left, astnode *right); // For compound operators (i.e +=)
+astnode *create_ternary_node(astnode *if_expr, astnode *then_expr, astnode *else_expr); 
+astnode *create_number_node(num_type number); 
+astnode *create_ident_node(char *ident); 
+astnode *create_string_node(char *string); 
+astnode *create_char_node(char *charlit);
+astnode *create_fnc_call_node(astnode *function_name, astnode *expr_list);
+astnode *init_node_list(astnode *node_list_head);
+astnode *add_node_to_list(astnode *node_list, astnode *new_argument);
+astnode *merge_node_lists(astnode *node_list, astnode *list_to_merge);
 
 // Helper function to create number node with value of 1 (for ++ & --)
-astnode* create_num_one_node();
+astnode *create_num_one_node();
 
 // Declaration Nodes
 // -----------------
@@ -384,6 +377,12 @@ astnode *create_sym_table_entry(char *ident);
 // arr_size parameter is only used for array nodes
 astnode *create_arr_fnc_sym_entry(astnode *sym_table_entry, int type_to_add, int arr_size);
 
+// Creates struct / union symbol table entry
+astnode *create_struct_union_sym_entry(int struct_or_union, char *ident, int is_abstract);
+
+// Adds struct / union members to struct / union symbol table
+int add_struct_union_members(astnode *struct_union_node, astnode *members);
+
 // Printer Functions
 // ------------------
 
@@ -397,6 +396,6 @@ char *typeQualToString(int type_qual);
 char *scalarToString(astnode *scalar_node);
 
 // Converts IDENT type enum to string for printing
-char *identTypeToString(int ident_type);
+char *identTypeToString(astnode *node);
 
 #endif // ASTFUNCTIONS_H

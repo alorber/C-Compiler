@@ -85,6 +85,9 @@ int addEntryToTable(symbolTable *sym_table, struct astnode *sym_entry, int repla
 // Returns 1 on (all) success, -1 on (any) failure
 int addEntryToNamespace(int name_space, struct astnode *sym_entry, int replace);
 
+// Given symbol table, returns astnode list of table members
+struct astnode *getTableMembers(symbolTable *sym_table);
+
 // Scope Stack Functions
 // ----------------------
 

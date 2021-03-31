@@ -18,6 +18,6 @@ int yyerror (char const *s);
 void print_indents(int num_indents);
 
 // Prints the AST
-void print_ast(astnode *node, int num_indent);
+void print_ast(astnode *node, int num_indent, int is_struct_union_member);
 
 #endif // PARSER_H
