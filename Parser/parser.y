@@ -44,19 +44,21 @@
 %type<node> cast_expr multiplicative_expr additive_expr shift_expr
 %type<node> relational_expr equality_expr bitwise_and_expr bitwise_xor_expr
 %type<node> bitwise_or_expr logical_and_expr logical_or_expr conditional_expr
-%type<node> assignment_expr expr
+%type<node> assignment_expr
 %type<op> assignment_op
+%type<node> expr const_expr
 %type<op> '=' '<' '>' '!' '~' '(' ')' '[' ']' '.'
-%type<node> decl_or_fnc_def declaration decl_specifier init_decl_list init_decl
-%type<node> storage_class_specifier type_specifier struct_union_specifier
+%type<node> decl_or_fnc_def_list decl_or_fnc_def declaration decl_specifier 
+%type<node> init_decl_list init_decl storage_class_specifier type_specifier 
+%type<node> struct_union_specifier
 %type<op> struct_union
-%type<node> struct_decl_list struct_decl spec_qual_list 
-%type<node> struct_declarator_list struct_declarator enum_specifier 
+%type<node> struct_decl_list struct_decl spec_qual_list struct_declarator_list
+%type<node> struct_declarator enum_specifier 
 %type<op> type_qualifier
 %type<node> fnc_specifier declarator dir_declarator pointer type_qualifier_list
 %type<node> type_name abstr_declarator dir_abstr_declarator typedef_name
-%type<node> initializer fnc_def compound_stmt decl_or_stmt_list decl_or_stmt
-%type<node> statement
+%type<node> initializer fnc_def fnc_block statement labeled_stmt compound_stmt
+%type<node> block_item_list block_item expr_stmt selection_stmt iter_stmt jump_stmt
 
 /* Operator Precedence & Associativity */
 /* From cpp website */
@@ -216,6 +218,9 @@ assignment_op: TIMESEQ      {$$ = '*';}
 expr: assignment_expr               {$$ = $1;}
     | expr ',' assignment_expr      {$$ = create_binary_node(',',$1,$3);}
     ;
+
+const_expr: conditional_expr    {$$ = $1;}
+          ;
 
 /* DECLARATIONS
 * -------------- */
@@ -420,31 +425,84 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                      // Prints function declaration
                                      print_ast($<node>$,0,0);
                                     }
-         compound_stmt              {$$ = $<node>3;
+         fnc_block                   {$$ = $<node>3;
                                      $$->ast_sym_entry.sym_node = $4;
                                     }
        ;
-    
-compound_stmt: '{'                      {/* Creates new scope */
-                                         createNewScope(FUNCTION_SCOPE);} 
-                decl_or_stmt_list '}'   {$$ = $3;
-                                         /* Removes inner scope */
-                                         deleteInnerScope();
-                                         }
-             ;
 
-decl_or_stmt_list: decl_or_stmt                     {$$ = init_node_list($1);
-                                                     print_ast($1,0,0);}
-                 | decl_or_stmt_list decl_or_stmt   {$$ = add_node_to_list($1,$2);
-                                                     print_ast($2,0,0);}
-                 ;
+fnc_block: '{'                       {/* Creates new scope */
+                                     createNewScope(FUNCTION_SCOPE);} 
+           block_item_list '}'      {$$ = $3;
+                                     /* Removes inner scope */
+                                     deleteInnerScope();
+                                    }
+        ;
 
-decl_or_stmt: declaration   {$$ = $1;}
-            | statement     {$$ = $1;}
+/* STATEMENTS
+* -------------- */
+
+statement: labeled_stmt     {}
+         | compound_stmt    {}
+         | expr_stmt        {}
+         | selection_stmt   {}
+         | iter_stmt        {}
+         | jump_stmt        {}
+         ;
+
+labeled_stmt: IDENT ':' statement           {}
+            | CASE const_expr ':' statement {}
+            | DEFAULT ':' statement         {}
             ;
 
-statement: compound_stmt    {$$ = $1;}
-         | expr ';'         {$$ = $1;}
+compound_stmt: '{' '}'                  {}
+             | '{'                      {/* Creates new scope */
+                                         createNewScope(BLOCK_SCOPE);} 
+                block_item_list '}'     {$$ = $3;
+                                         /* Removes inner scope */
+                                         deleteInnerScope();
+                                        }
+             ;
+
+block_item_list: block_item                     {$$ = init_node_list($1);
+                                                 print_ast($1,0,0);}
+               | block_item_list block_item     {$$ = add_node_to_list($1,$2);
+                                                 print_ast($2,0,0);}
+               ;
+
+block_item: declaration   {$$ = $1;}
+          | statement     {$$ = $1;}
+          ;
+
+expr_stmt: ';'        {}
+         | expr ';'   {}
+         ;
+
+selection_stmt: IF '(' expr ')' statement                   {}
+              | IF '(' expr ')' statement ELSE statement    {}
+              | SWITCH '(' expr ')' statement               {}
+              ;
+
+iter_stmt: WHILE '(' expr ')' statement                     {}
+         | DO statement WHILE '(' expr ')' ';'              {}
+         | FOR '(' ';' ';' ')' statement                    {}
+         | FOR '(' ';' ';' expr ')' statement               {}
+         | FOR '(' ';' expr ';' ')' statement               {}
+         | FOR '(' ';' expr ';' expr ')' statement          {}
+         | FOR '(' expr ';' ';' ')' statement               {}
+         | FOR '(' expr ';' ';' expr ')' statement          {}
+         | FOR '(' expr ';' expr ';' ')' statement          {}
+         | FOR '(' expr ';' expr ';' expr ')' statement     {}
+         | FOR '(' declaration ';' ')'                      {}
+         | FOR '(' declaration ';' expr ')'                 {}
+         | FOR '(' declaration expr ';' ')'                 {}
+         | FOR '(' declaration expr ';' expr ')'            {}
+         ;
+
+jump_stmt: GOTO IDENT ';'     {}
+         | CONTINUE ';'       {}
+         | BREAK    ';'       {}
+         | RETURN ';'         {}
+         | RETURN expr ';'    {}
          ;
 
 
