@@ -343,14 +343,14 @@ declarator: dir_declarator           {$$ = $1;}
           | pointer dir_declarator   {$$ = build_declarator($1,$2);}
           ;
 
-dir_declarator: IDENT                                {$$ = create_sym_table_entry($1);}
-                 | '(' declarator ')'                {$$ = $2;}
-                 /* More complex array expressions not supported */
-                 | dir_declarator '[' ']'            {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,-1);}
-                 | dir_declarator '[' NUMBER ']'     {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,$3.i_value);}  
-                 /* Compiler assumes all function declarators are () */
-                 | dir_declarator '(' ')'            {$$ = create_arr_fnc_sym_entry($1,FUNCTION_TYPE,-1);}
-                 ;
+dir_declarator: IDENT                             {$$ = create_sym_table_entry($1);}
+              | '(' declarator ')'                {$$ = $2;}
+              /* More complex array expressions not supported */
+              | dir_declarator '[' ']'            {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,-1);}
+              | dir_declarator '[' NUMBER ']'     {$$ = create_arr_fnc_sym_entry($1,ARRAY_TYPE,$3.i_value);}  
+              /* Compiler assumes all function declarators are () */
+              | dir_declarator '(' ')'            {$$ = create_arr_fnc_sym_entry($1,FUNCTION_TYPE,-1);}
+              ;
 
 pointer: '*'                                {$$ = create_pointer_node(NULL,NULL);}
        | '*' type_qualifier_list            {$$ = create_pointer_node(NULL,$2);}
@@ -441,12 +441,12 @@ fnc_block: '{'                       {/* Creates new scope */
 /* STATEMENTS
 * -------------- */
 
-statement: labeled_stmt     {}
-         | compound_stmt    {}
-         | expr_stmt        {}
-         | selection_stmt   {}
-         | iter_stmt        {}
-         | jump_stmt        {}
+statement: labeled_stmt     {$$ = $1;}
+         | compound_stmt    {$$ = $1;}
+         | expr_stmt        {$$ = $1;}
+         | selection_stmt   {$$ = $1;}
+         | iter_stmt        {$$ = $1;}
+         | jump_stmt        {$$ = $1;}
          ;
 
 labeled_stmt: IDENT ':' statement           {}
@@ -454,7 +454,7 @@ labeled_stmt: IDENT ':' statement           {}
             | DEFAULT ':' statement         {}
             ;
 
-compound_stmt: '{' '}'                  {}
+compound_stmt: '{' '}'                  {/* Do Nothing */}
              | '{'                      {/* Creates new scope */
                                          createNewScope(BLOCK_SCOPE);} 
                 block_item_list '}'     {$$ = $3;
@@ -473,8 +473,8 @@ block_item: declaration   {$$ = $1;}
           | statement     {$$ = $1;}
           ;
 
-expr_stmt: ';'        {}
-         | expr ';'   {}
+expr_stmt: ';'        {/* Do Nothing */}
+         | expr ';'   {$$ = $1;}
          ;
 
 selection_stmt: IF '(' expr ')' statement                   {}
