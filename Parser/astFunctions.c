@@ -486,6 +486,89 @@ astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl) {
     return type_name_node;
 }
 
+// Statement Nodes
+// ---------------
+
+astnode *create_compound_stmt_node(astnode *statement_block, struct scopeEntry *block_scope) {
+    astnode *compound_stmt_node = allocate_node_mem();
+    compound_stmt_node->node_type = COMPOUND_STMT_TYPE;
+    compound_stmt_node->ast_compound_stmt.statement_block = statement_block;
+    compound_stmt_node->ast_compound_stmt.block_scope = block_scope;
+
+    return compound_stmt_node;
+}
+
+astnode *create_if_else_node(astnode *if_condition, astnode *if_body, astnode *else_body) {
+    astnode *if_else_node = allocate_node_mem();
+    if_else_node->node_type = IF_ELSE_TYPE;
+    if_else_node->ast_if_else.if_condition = if_condition;
+    if_else_node->ast_if_else.if_body = if_body;
+    if_else_node->ast_if_else.else_body = else_body;
+
+    return if_else_node;
+}
+
+astnode *create_while_loop_node(astnode *is_do_while, astnode *condition, astnode *body) {
+    astnode *while_loop_node = allocate_node_mem();
+    while_loop_node->node_type = WHILE_LOOP_TYPE;
+    while_loop_node->ast_while_loop.is_do_while = is_do_while;
+    while_loop_node->ast_while_loop.condition = condition;
+    while_loop_node->ast_while_loop.body = body;
+
+    return while_loop_node;
+}
+
+astnode *create_for_loop_node(astnode *initialization, astnode *condition, astnode *update, astnode *body) {
+    astnode *for_loop_node = allocate_node_mem();
+    for_loop_node->node_type = FOR_LOOP_TYPE;
+    for_loop_node->ast_for_loop.initialization = initialization;
+    for_loop_node->ast_for_loop.condition = condition;
+    for_loop_node->ast_for_loop.update = update;
+    for_loop_node->ast_for_loop.body = body;
+
+    return for_loop_node;
+}
+
+astnode *create_switch_node() {
+    astnode *switch_node = allocate_node_mem();
+
+    return switch_node;
+}
+
+astnode *create_goto_stmt_node(astnode *label) {
+    astnode *goto_stmt_node = allocate_node_mem();
+    goto_stmt_node->node_type = GOTO_STMT_TYPE;
+    
+    // Checks if label is already in symbol table
+    astnode *label_sym_entry = searchScopeStack(label->ast_ident.ident,LABEL_NS);
+    // If not, adds to symbol table
+    if(label_sym_entry == NULL) {
+        label_sym_entry = create_sym_table_entry(label->ast_ident.ident);
+        label_sym_entry->ast_sym_entry.sym_type = LABEL_TYPE;
+        addEntryToNamespace(LABEL_NS,label_sym_entry,0);
+    }
+    
+    goto_stmt_node->ast_goto_stmt.label = label_sym_entry;
+
+    return goto_stmt_node;
+}
+
+astnode *create_continue_break_stmt_node(int type) {
+    astnode *continue_break_stmt_node = allocate_node_mem();
+    continue_break_stmt_node->node_type = CONTINUE_BREAK_STMT_TYPE;
+    continue_break_stmt_node->ast_continue_break_stmt.type = type;
+
+    return continue_break_stmt_node;
+}
+
+astnode *create_return_node(astnode *return_expr) {
+    astnode *return_node = allocate_node_mem();
+    return_node->node_type = RETURN_TYPE;
+    return_node->ast_return.return_expr = return_expr;
+    
+    return return_node;
+}
+
 // Type Nodes
 // ----------
 

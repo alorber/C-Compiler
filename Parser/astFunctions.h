@@ -31,12 +31,20 @@ enum nodetype {
     NODE_LIST_TYPE,
     DECL_SPEC_TYPE,  // 10
     TYPE_NAME_TYPE,
-    SCALAR_TYPE,
+    COMPOUND_STMT_TYPE,
+    IF_ELSE_TYPE,
+    WHILE_LOOP_TYPE,
+    FOR_LOOP_TYPE,  // 15
+    SWITCH_TYPE,
+    GOTO_STMT_TYPE,
+    CONTINUE_BREAK_STMT_TYPE,
+    RETURN_TYPE,
+    SCALAR_TYPE,  // 20
     POINTER_TYPE,
     ARRAY_TYPE,
-    FUNCTION_TYPE,  // 15
+    FUNCTION_TYPE,
     STRUCT_UNION_TYPE,
-    SYM_ENTRY_TYPE
+    SYM_ENTRY_TYPE  // 25
 };
 
 // --------------------
@@ -117,6 +125,7 @@ enum type_qualifier {
     RESTRICT_TQ = 8
 };
 
+// Declaration Specifier
 typedef struct astnode_decl_specifier {
     struct astnode *type_specifier;
     int storage_class;  // Using storage_class_specifier enum
@@ -124,10 +133,67 @@ typedef struct astnode_decl_specifier {
     int is_inline;      // Function specifier (1 = true)
 } astnode_decl_specifier;
 
+// Type Name
 typedef struct astnode_type_name {
     struct astnode *spec_qual_list;
     struct astnode *abstr_declarator;
 } astnode_type_name;
+
+// Statement Nodes
+// ---------------
+
+// Compound Statement
+typedef struct astnode_compound_stmt {
+    astnode *statement_block; // List of statements in block;
+    struct scopeEntry *block_scope;  // Symbol table of block scope
+} astnode_compound_stmt;
+
+// If Else statement
+typedef struct astnode_if_else {
+    struct astnode *if_condition;
+    struct astnode *if_body;
+    struct astnode *else_body;   // Either if_else node for "else if" statment, or statement node for "else"
+} astnode_if_else;
+
+// While Loop
+typedef struct astnode_while_loop {
+    int is_do_while;    // 1 if "do while", 0 if regular "while" loop
+    struct astnode *condition;
+    struct astnode *body;
+} astnode_while_loop;
+
+// For Loop
+typedef struct astnode_for_loop {
+    struct astnode *initialization;
+    struct astnode *condition;
+    struct astnode *update;
+    struct astnode *body;
+} astnode_for_loop;
+
+// Switch Statment
+typedef struct astnode_switch {
+
+} astnode_switch;
+
+// Goto Statement
+typedef struct astnode_goto_stmt {
+    astnode *label;
+} astnode_goto_stmt;
+
+// Enum for continue / break node type
+enum continue_break {
+    CONTINUE_STMT = 1,
+    BREAK_STMT
+};
+
+typedef struct astnode_continue_break_stmt {
+    int type; // Uses continue_break enum above
+} astnode_continue_break_stmt;
+
+// Return Statment
+typedef struct astnode_return {
+    struct astnode *return_expr;
+} astnode_return;
 
 // Type Nodes
 // ----------
@@ -289,6 +355,16 @@ typedef struct astnode {
         astnode_decl_specifier ast_decl_spec;
         astnode_type_name ast_type_name;
 
+        // Statement Nodes
+        astnode_compound_stmt ast_compound_stmt;
+        astnode_if_else ast_if_else;
+        astnode_while_loop ast_while_loop;
+        astnode_for_loop ast_for_loop;
+        astnode_switch ast_switch;
+        astnode_goto_stmt ast_goto_stmt;
+        astnode_continue_break_stmt ast_continue_break_stmt;
+        astnode_return ast_return;
+
         // Type Nodes
         astnode_scalar ast_scalar;
         astnode_pointer ast_pointer;
@@ -351,6 +427,18 @@ astnode *build_abstract_declarator(astnode *ptr, astnode *declarator);
 
 // Creates type-name node
 astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl);
+
+// Statement Nodes
+// ---------------
+
+astnode *create_compound_stmt_node(astnode *statement_block, struct scopeEntry *block_scope);
+astnode *create_if_else_node(astnode *if_condition, astnode *if_body, astnode *else_body);
+astnode *create_while_loop_node(astnode *is_do_while, astnode *condition, astnode *body);
+astnode *create_for_loop_node(astnode *initialization, astnode *condition, astnode *update, astnode *body);
+astnode *create_switch_node();
+astnode *create_goto_stmt_node(astnode *label);
+astnode *create_continue_break_stmt_node(int type);
+astnode *create_return_node(astnode *return_expr);
 
 // Type Nodes
 // ----------

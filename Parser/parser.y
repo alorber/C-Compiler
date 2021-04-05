@@ -432,7 +432,7 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
 
 fnc_block: '{'                       {/* Creates new scope */
                                      createNewScope(FUNCTION_SCOPE);} 
-           block_item_list '}'      {$$ = $3;
+           block_item_list '}'      {$$ = create_compound_stmt_node($3,getInnerScope());
                                      /* Removes inner scope */
                                      deleteInnerScope();
                                     }
@@ -454,10 +454,10 @@ labeled_stmt: IDENT ':' statement           {}
             | DEFAULT ':' statement         {}
             ;
 
-compound_stmt: '{' '}'                  {/* Do Nothing */}
+compound_stmt: '{' '}'                  {$$ = create_compound_stmt_node(NULL,NULL);}
              | '{'                      {/* Creates new scope */
                                          createNewScope(BLOCK_SCOPE);} 
-                block_item_list '}'     {$$ = $3;
+                block_item_list '}'     {$$ = create_compound_stmt_node($3,getInnerScope());
                                          /* Removes inner scope */
                                          deleteInnerScope();
                                         }
@@ -477,32 +477,32 @@ expr_stmt: ';'        {/* Do Nothing */}
          | expr ';'   {$$ = $1;}
          ;
 
-selection_stmt: IF '(' expr ')' statement                   {}
-              | IF '(' expr ')' statement ELSE statement    {}
-              | SWITCH '(' expr ')' statement               {}
+selection_stmt: IF '(' expr ')' statement                   {$$ = create_if_else_node($3,$5,NULL);}
+              | IF '(' expr ')' statement ELSE statement    {$$ = create_if_else_node($3,$5,$7);}
+              | SWITCH '(' expr ')' statement               {$$ = create_switch_node($3,$5);}
               ;
 
-iter_stmt: WHILE '(' expr ')' statement                     {}
-         | DO statement WHILE '(' expr ')' ';'              {}
-         | FOR '(' ';' ';' ')' statement                    {}
-         | FOR '(' ';' ';' expr ')' statement               {}
-         | FOR '(' ';' expr ';' ')' statement               {}
-         | FOR '(' ';' expr ';' expr ')' statement          {}
-         | FOR '(' expr ';' ';' ')' statement               {}
-         | FOR '(' expr ';' ';' expr ')' statement          {}
-         | FOR '(' expr ';' expr ';' ')' statement          {}
-         | FOR '(' expr ';' expr ';' expr ')' statement     {}
-         | FOR '(' declaration ';' ')'                      {}
-         | FOR '(' declaration ';' expr ')'                 {}
-         | FOR '(' declaration expr ';' ')'                 {}
-         | FOR '(' declaration expr ';' expr ')'            {}
+iter_stmt: WHILE '(' expr ')' statement                     {$$ = create_while_loop_node(0,$3,$5);}
+         | DO statement WHILE '(' expr ')' ';'              {$$ = create_while_loop_node(1,$5,$2);}
+         | FOR '(' ';' ';' ')' statement                    {$$ = create_for_loop_node(NULL,NULL,NULL,$6);}
+         | FOR '(' ';' ';' expr ')' statement               {$$ = create_for_loop_node(NULL,NULL,$5,$7);}
+         | FOR '(' ';' expr ';' ')' statement               {$$ = create_for_loop_node(NULL,$4,NULL,$7);}
+         | FOR '(' ';' expr ';' expr ')' statement          {$$ = create_for_loop_node(NULL,$4,$6,$8);}
+         | FOR '(' expr ';' ';' ')' statement               {$$ = create_for_loop_node($3,NULL,NULL,$7);}
+         | FOR '(' expr ';' ';' expr ')' statement          {$$ = create_for_loop_node($3,NULL,$6,$8);}
+         | FOR '(' expr ';' expr ';' ')' statement          {$$ = create_for_loop_node($3,$5,NULL,$8);}
+         | FOR '(' expr ';' expr ';' expr ')' statement     {$$ = create_for_loop_node($3,$5,$7,$9);}
+         | FOR '(' declaration ';' ')'                      {/* Not sure what to do */}
+         | FOR '(' declaration ';' expr ')'                 {/* Not sure what to do */}
+         | FOR '(' declaration expr ';' ')'                 {/* Not sure what to do */}
+         | FOR '(' declaration expr ';' expr ')'            {/* Not sure what to do */}
          ;
 
-jump_stmt: GOTO IDENT ';'     {}
-         | CONTINUE ';'       {}
-         | BREAK    ';'       {}
-         | RETURN ';'         {}
-         | RETURN expr ';'    {}
+jump_stmt: GOTO IDENT ';'     {$$ = create_goto_stmt_node($2);}
+         | CONTINUE ';'       {$$ = create_continue_break_stmt_node(CONTINUE_STMT);}
+         | BREAK    ';'       {$$ = create_continue_break_stmt_node(BREAK_STMT);}
+         | RETURN ';'         {$$ = create_return_node(NULL);}
+         | RETURN expr ';'    {$$ = create_return_node($2);}
          ;
 
 
