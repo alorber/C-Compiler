@@ -436,7 +436,7 @@ astnode *create_if_else_node(astnode *if_condition, astnode *if_body, astnode *e
 astnode *create_while_loop_node(astnode *is_do_while, astnode *condition, astnode *body);
 astnode *create_for_loop_node(astnode *initialization, astnode *condition, astnode *update, astnode *body);
 astnode *create_switch_node();
-astnode *create_goto_stmt_node(astnode *label);
+astnode *create_goto_stmt_node(char *label);
 astnode *create_continue_break_stmt_node(int type);
 astnode *create_return_node(astnode *return_expr);
 

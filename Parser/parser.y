@@ -94,7 +94,14 @@ start_expr: expr ';'                {print_ast($1,0,0);}
           | start_expr expr ';'     {print_ast($2,0,0);}
           ;
 
-primary_expr: IDENT           {$$ = create_ident_node($1);}
+primary_expr: IDENT           { /* Searches symbol table */
+                                astnode *sym_entry = searchScopeStack($1,OTHER_NS);
+                                // If not found, error
+                                if(sym_entry == NULL) {
+                                    fprintf(stderr, "ERROR: UNKNOWN IDENT %s.\n",$1);
+                                }
+                                $$ = sym_entry;
+                              }
             | CHARLIT         {$$ = create_char_node($1);}
             | NUMBER          {$$ = create_number_node($1);}
             | STRING          {$$ = create_string_node($1);}

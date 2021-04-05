@@ -535,15 +535,15 @@ astnode *create_switch_node() {
     return switch_node;
 }
 
-astnode *create_goto_stmt_node(astnode *label) {
+astnode *create_goto_stmt_node(char *label) {
     astnode *goto_stmt_node = allocate_node_mem();
     goto_stmt_node->node_type = GOTO_STMT_TYPE;
     
     // Checks if label is already in symbol table
-    astnode *label_sym_entry = searchScopeStack(label->ast_ident.ident,LABEL_NS);
+    astnode *label_sym_entry = searchScopeStack(label,LABEL_NS);
     // If not, adds to symbol table
     if(label_sym_entry == NULL) {
-        label_sym_entry = create_sym_table_entry(label->ast_ident.ident);
+        label_sym_entry = create_sym_table_entry(strdup(label));
         label_sym_entry->ast_sym_entry.sym_type = LABEL_TYPE;
         addEntryToNamespace(LABEL_NS,label_sym_entry,0);
     }
