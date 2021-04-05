@@ -440,6 +440,9 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
 fnc_block: '{'                       {/* Creates new scope */
                                      createNewScope(FUNCTION_SCOPE);} 
            block_item_list '}'      {$$ = create_compound_stmt_node($3,getInnerScope());
+                                     /* Prints */
+                                     fprintf(stdout,"AST DUMP FOR FUNCTION:\n");
+                                     print_ast($3);
                                      /* Removes inner scope */
                                      deleteInnerScope();
                                     }
@@ -465,6 +468,9 @@ compound_stmt: '{' '}'                  {$$ = create_compound_stmt_node(NULL,NUL
              | '{'                      {/* Creates new scope */
                                          createNewScope(BLOCK_SCOPE);} 
                 block_item_list '}'     {$$ = create_compound_stmt_node($3,getInnerScope());
+                                         /* Prints */
+                                         fprintf(stdout,"AST DUMP FOR BLOCK:\n");
+                                         print_ast($3);
                                          /* Removes inner scope */
                                          deleteInnerScope();
                                         }
@@ -476,11 +482,12 @@ block_item_list: block_item                     {$$ = init_node_list($1);
                                                  print_ast($2,0,0);}
                ;
 
-block_item: declaration   {$$ = $1;}
+block_item: declaration   {$$ = $1;
+                           print_ast($1,0,0);}
           | statement     {$$ = $1;}
           ;
 
-expr_stmt: ';'        {/* Do Nothing */}
+expr_stmt: ';'        {$$ = NULL;}
          | expr ';'   {$$ = $1;}
          ;
 
@@ -540,6 +547,11 @@ void print_indents(int num_indents) {
 
 // Prints AST
 void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
+    // Skips empty lines / nodes
+    if(node == NULL) {
+        return;
+    }
+
     fprintf(stderr,"PRINTING node type %i\n",node->node_type);
 
     // Prints indents
@@ -549,6 +561,9 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
 
     // Checks type for printing
     switch(node->node_type) {
+        // Expressions
+        // -----------
+
         case UNARY_TYPE: ;
             // Checks for special operators
             int u_op = node->ast_unary_op.op;
@@ -739,11 +754,17 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
             // Print each node in list
             astnode_list_entry *curr_node = &(node->ast_node_list_head);
             while(curr_node != NULL) {
-                print_ast(curr_node->node, num_indents, is_struct_union_member);
+                // Skips blank lines " ;"
+                if(curr_node->node != NULL) {
+                    print_ast(curr_node->node, num_indents, is_struct_union_member);
+                }
                 curr_node = curr_node->next;
             }
 
             break;
+
+        // Declarations
+        // ------------
 
         case DECL_SPEC_TYPE:
             fprintf(stdout, "DECLARATION SPECIFIER\n");
@@ -755,8 +776,110 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
 
             break;
 
+        // Statements
+        // ----------
+
+        case COMPOUND_STMT_TYPE:
+            // Will be dumped when completed
+
+            break;
+
+        case IF_ELSE_TYPE:
+            // IF
+            fprintf(stdout, "IF:\n");
+            print_ast(node->ast_if_else.if_condition,num_indents+1,is_struct_union_member);
+            
+            // THEN
+            print_indents(num_indents);
+            fprintf(stdout, "THEN:\n");
+            print_ast(node->ast_if_else.if_body,num_indents+1,is_struct_union_member);
+
+            // ELSE
+            if(node->ast_if_else.else_body != NULL) {
+                print_indents(num_indents);
+                fprintf(stdout, "ELSE:\n");
+                print_ast(node->ast_if_else.else_body,num_indents+1,is_struct_union_member);
+            }
+            
+            break;
+
+        case WHILE_LOOP_TYPE:
+            // Checks if do while
+            if(node->ast_while_loop.is_do_while == 1) {
+                fprintf(stdout, "DO:\n")
+                print_ast(node->ast_while_loop.body,num_indents+1,is_struct_union_member);
+            }
+
+            // Prints condition
+            print_indents(num_indents);
+            fprintf(stdout, "WHILE:\n");
+            print_ast(node->ast_while_loop.condition,num_indents+1,is_struct_union_member);
+
+            // Checks if regular while loop
+            if(node->ast_while_loop.is_do_while == 0) {
+                print_indents(num_indents);
+                fprintf(stdout, "WHILE BODY:\n");
+                print_ast(node->ast_while_loop.body,num_indents+1,is_struct_union_member);
+            }
+
+            break;
+
+        case FOR_LOOP_TYPE:
+            fprintf("FOR\n");
+
+            // Initialization
+            print_indents(num_indents);
+            fprintf("INITIALIZATION:\n");
+            print_ast(node->ast_for_loop.initialization,num_indents+1,is_struct_union_member);
+
+            // Condition
+            print_indents(num_indents);
+            fprintf("CONDITION:\n");
+            print_ast(node->ast_for_loop.condition,num_indents+1,is_struct_union_member);
+
+            // Update
+            print_indents(num_indents);
+            fprintf("UPDATE:\n");
+            print_ast(node->ast_for_loop.update,num_indents+1,is_struct_union_member);
+
+            // Body
+            print_indents(num_indents);
+            fprintf("BODY:\n");
+            print_ast(node->ast_for_loop.body,num_indents+1,is_struct_union_member);
+
+            break;
+
+        case SWITCH_TYPE:
+            // TODO
+            break;
+
+        case GOTO_STMT_TYPE:
+            fprintf(stdout, "GOTO:\n");
+            print_ast(node->ast_goto_stmt.label,num_indents+1,is_struct_union_member);
+
+            break;
+
+        case CONTINUE_BREAK_STMT_TYPE:
+            if(node->ast_continue_break_stmt.type == CONTINUE_STMT) {
+                fprintf(stdout, "CONTINUE STATEMENT\n");
+            } else {
+                fprintf(stdout, "BREAK STATEMENT\n");
+            }
+
+            break;
+
+        case RETURN_TYPE:
+            fprintf(stdout, "RETURN:\n");
+            print_ast(node->ast_return.return_expr,num_indents+1,is_struct_union_member);
+
+            break;
+
+        // Types
+        // -----
+
         case SCALAR_TYPE:
             fprintf(stdout, "%s\n", scalarToString(node));
+            
             break;
 
         case POINTER_TYPE:
@@ -776,6 +899,9 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
             print_ast(node->ast_function.return_type, num_indents+1, is_struct_union_member);
 
             break;
+
+        // Symbol Table
+        // ------------
 
         case SYM_ENTRY_TYPE:
             fprintf(stdout, "SYMBOL %s as %s @ line %i in file %s.\n", node->ast_sym_entry.symbol, identTypeToString(node), node->ast_sym_entry.line_num, node->ast_sym_entry.filename);
