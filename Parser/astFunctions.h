@@ -31,20 +31,21 @@ enum nodetype {
     NODE_LIST_TYPE,
     DECL_SPEC_TYPE,  // 10
     TYPE_NAME_TYPE,
+    LABEL_STMT_TYPE,
     COMPOUND_STMT_TYPE,
     IF_ELSE_TYPE,
-    WHILE_LOOP_TYPE,
-    FOR_LOOP_TYPE,  // 15
+    WHILE_LOOP_TYPE,  // 15
+    FOR_LOOP_TYPE,
     SWITCH_TYPE,
     GOTO_STMT_TYPE,
     CONTINUE_BREAK_STMT_TYPE,
-    RETURN_TYPE,
-    SCALAR_TYPE,  // 20
+    RETURN_TYPE,  // 20
+    SCALAR_TYPE,
     POINTER_TYPE,
     ARRAY_TYPE,
     FUNCTION_TYPE,
-    STRUCT_UNION_TYPE,
-    SYM_ENTRY_TYPE  // 25
+    STRUCT_UNION_TYPE,  // 25
+    SYM_ENTRY_TYPE
 };
 
 // --------------------
@@ -142,9 +143,23 @@ typedef struct astnode_type_name {
 // Statement Nodes
 // ---------------
 
+// Enum for label types
+enum label_type {
+    GOTO_LABEL = 1,
+    CASE_LABEL,
+    DEFAULT_LABEL
+};
+
+// Label Statement
+typedef struct astnode_label_stmt {
+    int label_type;   // Type of label, using label_type enum above
+    struct astnode *label;   // Either the symbol table entry of the label, or constant expresssion for "case"
+    struct astnode *stmt;
+} astnode_label_stmt;
+
 // Compound Statement
 typedef struct astnode_compound_stmt {
-    astnode *statement_block; // List of statements in block;
+    struct astnode *statement_block; // List of statements in block;
     struct scopeEntry *block_scope;  // Symbol table of block scope
 } astnode_compound_stmt;
 
@@ -177,7 +192,7 @@ typedef struct astnode_switch {
 
 // Goto Statement
 typedef struct astnode_goto_stmt {
-    astnode *label;
+    struct astnode *label;
 } astnode_goto_stmt;
 
 // Enum for continue / break node type
@@ -356,6 +371,7 @@ typedef struct astnode {
         astnode_type_name ast_type_name;
 
         // Statement Nodes
+        astnode_label_stmt ast_label_stmt;
         astnode_compound_stmt ast_compound_stmt;
         astnode_if_else ast_if_else;
         astnode_while_loop ast_while_loop;
@@ -431,9 +447,10 @@ astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl);
 // Statement Nodes
 // ---------------
 
+astnode *create_label_stmt_node(int label_type, astnode *label, astnode *statement);
 astnode *create_compound_stmt_node(astnode *statement_block, struct scopeEntry *block_scope);
 astnode *create_if_else_node(astnode *if_condition, astnode *if_body, astnode *else_body);
-astnode *create_while_loop_node(astnode *is_do_while, astnode *condition, astnode *body);
+astnode *create_while_loop_node(int is_do_while, astnode *condition, astnode *body);
 astnode *create_for_loop_node(astnode *initialization, astnode *condition, astnode *update, astnode *body);
 astnode *create_switch_node();
 astnode *create_goto_stmt_node(char *label);

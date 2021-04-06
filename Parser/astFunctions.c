@@ -288,7 +288,7 @@ astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list) {
                 break;
 
             default:
-                fprintf(stderr, "Unknown symbol table entry type %i or %s.\n", curr_sym_entry->ast_sym_entry.sym_type, identTypeToString(curr_sym_entry->ast_sym_entry.sym_type));
+                fprintf(stderr, "Unknown symbol table entry type %i or %s.\n", curr_sym_entry->ast_sym_entry.sym_type, identTypeToString(curr_sym_entry));
                 break;
         }
 
@@ -489,6 +489,42 @@ astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl) {
 // Statement Nodes
 // ---------------
 
+astnode *create_label_stmt_node(int label_type, astnode *label, astnode *statement) {
+    astnode *label_stmt_node = allocate_node_mem();
+    label_stmt_node->node_type = LABEL_STMT_TYPE;
+    label_stmt_node->ast_label_stmt.label_type = label_type;
+    label_stmt_node->ast_label_stmt.stmt = statement;
+
+    // Checks label type
+    if(label_type == GOTO_LABEL) {
+        // Checks symbol table
+        astnode *label_sym_table_entry = searchScopeStack(label->ast_ident.ident,LABEL_NS);
+
+        // If symbol doesn't exist, adds to symbol table
+        if(label_sym_table_entry == NULL) {
+            label_sym_table_entry = create_sym_table_entry(label->ast_ident.ident);
+            label_sym_table_entry->ast_sym_entry.sym_type = LABEL_TYPE;
+            label_sym_table_entry->ast_sym_entry.sym_node = statement;
+
+            addEntryToNamespace(LABEL_NS,label_sym_table_entry,0);
+            label_stmt_node->ast_label_stmt.label = label_sym_table_entry;
+        }
+        // If symbol exists, checks if already declared
+        else if(label_sym_table_entry->ast_sym_entry.sym_node != NULL) {
+            fprintf(stderr, "ERROR: Label already defined at line %i in %s.\n", label_sym_table_entry->ast_sym_entry.line_num, label_sym_table_entry->ast_sym_entry.filename);
+        }
+        // Updates filename & line number
+        else {
+            label_sym_table_entry->ast_sym_entry.line_num = line_number;
+            label_sym_table_entry->ast_sym_entry.filename = strdup(filename);
+        }
+    } else {
+        label_stmt_node->ast_label_stmt.label = label;
+    }
+
+    return label_stmt_node;
+}
+
 astnode *create_compound_stmt_node(astnode *statement_block, struct scopeEntry *block_scope) {
     astnode *compound_stmt_node = allocate_node_mem();
     compound_stmt_node->node_type = COMPOUND_STMT_TYPE;
@@ -508,7 +544,7 @@ astnode *create_if_else_node(astnode *if_condition, astnode *if_body, astnode *e
     return if_else_node;
 }
 
-astnode *create_while_loop_node(astnode *is_do_while, astnode *condition, astnode *body) {
+astnode *create_while_loop_node(int is_do_while, astnode *condition, astnode *body) {
     astnode *while_loop_node = allocate_node_mem();
     while_loop_node->node_type = WHILE_LOOP_TYPE;
     while_loop_node->ast_while_loop.is_do_while = is_do_while;

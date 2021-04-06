@@ -46,7 +46,7 @@
 %type<node> bitwise_or_expr logical_and_expr logical_or_expr conditional_expr
 %type<node> assignment_expr
 %type<op> assignment_op
-%type<node> expr const_expr
+%type<node> expr
 %type<op> '=' '<' '>' '!' '~' '(' ')' '[' ']' '.'
 %type<node> decl_or_fnc_def_list decl_or_fnc_def declaration decl_specifier 
 %type<node> init_decl_list init_decl storage_class_specifier type_specifier 
@@ -226,9 +226,6 @@ expr: assignment_expr               {$$ = $1;}
     | expr ',' assignment_expr      {$$ = create_binary_node(',',$1,$3);}
     ;
 
-const_expr: conditional_expr    {$$ = $1;}
-          ;
-
 /* DECLARATIONS
 * -------------- */
 
@@ -289,8 +286,8 @@ type_specifier: VOID                    {$$ = create_scalar_node(VOID_ST, UNKNOW
               | LONG DOUBLE             {$$ = create_scalar_node(LONG_DOUBLE_ST, UNKNOWN_SS);}
               | SIGNED                  {$$ = create_scalar_node(UNKNOWN_ST, SIGNED_SS);}
               | UNSIGNED                {$$ = create_scalar_node(UNKNOWN_ST, UNSIGNED_SS);}
-              | _BOOL                    {$$ = create_scalar_node(BOOL_ST, UNKNOWN_SS);}
-              | _COMPLEX                 {/* Not supported currently */}
+              | _BOOL                   {$$ = create_scalar_node(BOOL_ST, UNKNOWN_SS);}
+              | _COMPLEX                {/* Not supported currently */}
               | struct_union_specifier  {$$ = $1;}
               | enum_specifier          {$$ = $1;}
               /*| typedef_name            {$$ = $1;} Typedefs not supported*/
@@ -441,8 +438,8 @@ fnc_block: '{'                       {/* Creates new scope */
                                      createNewScope(FUNCTION_SCOPE);} 
            block_item_list '}'      {$$ = create_compound_stmt_node($3,getInnerScope());
                                      /* Prints */
-                                     fprintf(stdout,"AST DUMP FOR FUNCTION:\n");
-                                     print_ast($3);
+                                     /* fprintf(stdout,"AST DUMP FOR FUNCTION:\n");
+                                     print_ast($3,0,0); */
                                      /* Removes inner scope */
                                      deleteInnerScope();
                                     }
@@ -459,9 +456,9 @@ statement: labeled_stmt     {$$ = $1;}
          | jump_stmt        {$$ = $1;}
          ;
 
-labeled_stmt: IDENT ':' statement           {}
-            | CASE const_expr ':' statement {}
-            | DEFAULT ':' statement         {}
+labeled_stmt: IDENT ':' statement           {$$ = create_label_stmt_node(GOTO_LABEL,create_ident_node($1),$3);}
+            | CASE NUMBER ':' statement     {$$ = create_label_stmt_node(CASE_LABEL,create_number_node($2),$4);}
+            | DEFAULT ':' statement         {$$ = create_label_stmt_node(DEFAULT_LABEL,NULL,$3);}
             ;
 
 compound_stmt: '{' '}'                  {$$ = create_compound_stmt_node(NULL,NULL);}
@@ -469,8 +466,8 @@ compound_stmt: '{' '}'                  {$$ = create_compound_stmt_node(NULL,NUL
                                          createNewScope(BLOCK_SCOPE);} 
                 block_item_list '}'     {$$ = create_compound_stmt_node($3,getInnerScope());
                                          /* Prints */
-                                         fprintf(stdout,"AST DUMP FOR BLOCK:\n");
-                                         print_ast($3);
+                                         /*fprintf(stdout,"AST DUMP FOR BLOCK:\n");
+                                         print_ast($3,0,0); */
                                          /* Removes inner scope */
                                          deleteInnerScope();
                                         }
@@ -483,7 +480,7 @@ block_item_list: block_item                     {$$ = init_node_list($1);
                ;
 
 block_item: declaration   {$$ = $1;
-                           print_ast($1,0,0);}
+                           /* print_ast($1,0,0); */}
           | statement     {$$ = $1;}
           ;
 
@@ -778,6 +775,31 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
 
         // Statements
         // ----------
+        case LABEL_STMT_TYPE:
+            // Checks label type
+            switch(node->ast_label_stmt.label_type) {
+                case GOTO_LABEL:
+                    fprintf(stdout, "LABEL NAME:\n");
+                    print_ast(node->ast_label_stmt.label,num_indents+1,is_struct_union_member);
+                    
+                    break;
+
+                case CASE_LABEL:
+                    fprintf(stdout, "LABEL CASE:\n");
+                    print_ast(node->ast_label_stmt.label,num_indents+1,is_struct_union_member);
+
+                    break;
+
+                case DEFAULT_LABEL:
+                    fprintf(stdout, "DEFAULT LABEL:");
+                    break;
+            }
+
+            print_indents(num_indents);
+            fprintf(stdout, "LABEL STATEMENT:\n");
+            print_ast(node->ast_label_stmt.stmt,num_indents+1,is_struct_union_member);
+
+            break;
 
         case COMPOUND_STMT_TYPE:
             // Will be dumped when completed
@@ -806,7 +828,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
         case WHILE_LOOP_TYPE:
             // Checks if do while
             if(node->ast_while_loop.is_do_while == 1) {
-                fprintf(stdout, "DO:\n")
+                fprintf(stdout, "DO:\n");
                 print_ast(node->ast_while_loop.body,num_indents+1,is_struct_union_member);
             }
 
@@ -825,26 +847,26 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
             break;
 
         case FOR_LOOP_TYPE:
-            fprintf("FOR\n");
+            fprintf(stdout, "FOR\n");
 
             // Initialization
             print_indents(num_indents);
-            fprintf("INITIALIZATION:\n");
+            fprintf(stdout, "INITIALIZATION:\n");
             print_ast(node->ast_for_loop.initialization,num_indents+1,is_struct_union_member);
 
             // Condition
             print_indents(num_indents);
-            fprintf("CONDITION:\n");
+            fprintf(stdout, "CONDITION:\n");
             print_ast(node->ast_for_loop.condition,num_indents+1,is_struct_union_member);
 
             // Update
             print_indents(num_indents);
-            fprintf("UPDATE:\n");
+            fprintf(stdout, "UPDATE:\n");
             print_ast(node->ast_for_loop.update,num_indents+1,is_struct_union_member);
 
             // Body
             print_indents(num_indents);
-            fprintf("BODY:\n");
+            fprintf(stdout, "BODY:\n");
             print_ast(node->ast_for_loop.body,num_indents+1,is_struct_union_member);
 
             break;
