@@ -507,7 +507,6 @@ astnode *create_label_stmt_node(int label_type, astnode *label, astnode *stateme
             label_sym_table_entry->ast_sym_entry.sym_node = statement;
 
             addEntryToNamespace(LABEL_NS,label_sym_table_entry,0);
-            label_stmt_node->ast_label_stmt.label = label_sym_table_entry;
         }
         // If symbol exists, checks if already declared
         else if(label_sym_table_entry->ast_sym_entry.sym_node != NULL) {
@@ -518,6 +517,8 @@ astnode *create_label_stmt_node(int label_type, astnode *label, astnode *stateme
             label_sym_table_entry->ast_sym_entry.line_num = line_number;
             label_sym_table_entry->ast_sym_entry.filename = strdup(filename);
         }
+
+        label_stmt_node->ast_label_stmt.label = label_sym_table_entry;
     } else {
         label_stmt_node->ast_label_stmt.label = label;
     }
@@ -565,8 +566,11 @@ astnode *create_for_loop_node(astnode *initialization, astnode *condition, astno
     return for_loop_node;
 }
 
-astnode *create_switch_node() {
+astnode *create_switch_node(astnode *expr, astnode *label_list) {
     astnode *switch_node = allocate_node_mem();
+    switch_node->node_type = SWITCH_TYPE;
+    switch_node->ast_switch.expr = expr;
+    switch_node->ast_switch.label_list = label_list;
 
     return switch_node;
 }
@@ -989,7 +993,7 @@ char *scalarToString(astnode *scalar_node) {
     }
 
     // Concatenates strings
-    char *result = malloc(sizeof(scalar_sign)+sizeof(scalar_type));
+    char *result = calloc(sizeof(scalar_sign)+sizeof(scalar_type),sizeof(char));
     strcat(result,scalar_sign);
     strcat(result,scalar_type);
 

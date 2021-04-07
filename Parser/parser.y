@@ -438,8 +438,8 @@ fnc_block: '{'                       {/* Creates new scope */
                                      createNewScope(FUNCTION_SCOPE);} 
            block_item_list '}'      {$$ = create_compound_stmt_node($3,getInnerScope());
                                      /* Prints */
-                                     /* fprintf(stdout,"AST DUMP FOR FUNCTION:\n");
-                                     print_ast($3,0,0); */
+                                     /* fprintf(stdout,"AST DUMP FOR FUNCTION:\n");*/
+                                     print_ast($3,0,0);
                                      /* Removes inner scope */
                                      deleteInnerScope();
                                     }
@@ -474,9 +474,9 @@ compound_stmt: '{' '}'                  {$$ = create_compound_stmt_node(NULL,NUL
              ;
 
 block_item_list: block_item                     {$$ = init_node_list($1);
-                                                 print_ast($1,0,0);}
+                                                 /*print_ast($1,0,0);*/}
                | block_item_list block_item     {$$ = add_node_to_list($1,$2);
-                                                 print_ast($2,0,0);}
+                                                 /*print_ast($2,0,0);*/}
                ;
 
 block_item: declaration   {$$ = $1;
@@ -791,7 +791,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
                     break;
 
                 case DEFAULT_LABEL:
-                    fprintf(stdout, "DEFAULT LABEL:");
+                    fprintf(stdout, "DEFAULT LABEL:\n");
                     break;
             }
 
@@ -802,7 +802,8 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
             break;
 
         case COMPOUND_STMT_TYPE:
-            // Will be dumped when completed
+            fprintf(stdout,"\n");
+            print_ast(node->ast_compound_stmt.statement_block,num_indents,is_struct_union_member);
 
             break;
 
@@ -872,7 +873,11 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
             break;
 
         case SWITCH_TYPE:
-            // TODO
+            fprintf(stdout, "SWITCH:\n");
+            print_ast(node->ast_switch.expr,num_indents+1,is_struct_union_member);
+            fprintf(stdout, "SWITCH CASES:\n");
+            print_ast(node->ast_switch.label_list,num_indents+1,is_struct_union_member);
+
             break;
 
         case GOTO_STMT_TYPE:

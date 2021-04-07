@@ -187,7 +187,8 @@ typedef struct astnode_for_loop {
 
 // Switch Statment
 typedef struct astnode_switch {
-    // TODO
+    struct astnode *expr;
+    struct astnode *label_list;
 } astnode_switch;
 
 // Goto Statement
@@ -452,7 +453,7 @@ astnode *create_compound_stmt_node(astnode *statement_block, struct scopeEntry *
 astnode *create_if_else_node(astnode *if_condition, astnode *if_body, astnode *else_body);
 astnode *create_while_loop_node(int is_do_while, astnode *condition, astnode *body);
 astnode *create_for_loop_node(astnode *initialization, astnode *condition, astnode *update, astnode *body);
-astnode *create_switch_node();
+astnode *create_switch_node(astnode *expr, astnode *label_list);
 astnode *create_goto_stmt_node(char *label);
 astnode *create_continue_break_stmt_node(int type);
 astnode *create_return_node(astnode *return_expr);
