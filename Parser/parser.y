@@ -13,9 +13,8 @@
 #include "../Lexer/lexerFunctions.h"
 
 /* Remove comments to enable debugging */
-#define YYDEBUG	1
+/* #define YYDEBUG	1 */
 %}
-/* %define parse.error verbose */
 
 %union {
     struct num_type number;
@@ -150,7 +149,8 @@ unary_op: '&'   {$$ = '&';}
         ;
 
 cast_expr: unary_expr                   {$$ = $1;}
-         | '(' type_name ')' cast_expr  {/* How should this be represented */}
+         | '(' type_name ')' cast_expr  {$$ = create_binary_node('~',$2,$4);
+                                         /* Just chose an unused symbol to use as operator */}
          ;
 
 multiplicative_expr: cast_expr                           {$$ = $1;}
@@ -523,7 +523,7 @@ jump_stmt: GOTO IDENT ';'     {$$ = create_goto_stmt_node($2);}
 /* ----------- */
 
 int main() {
-    yydebug = 1;   // Set value to 1 to enable debugging
+    yydebug = 0;   // Set value to 1 to enable debugging
     initScopeStack();  // Creates Scope Stack
     yyparse();
     return 0;
@@ -601,7 +601,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
             }
 
             // Prints sub-node
-            print_ast(node->ast_unary_op.expr,num_indents+1, is_struct_union_member);
+            print_ast(node->ast_unary_op.expr,num_indents+1,is_struct_union_member);
 
             break;
 
@@ -644,6 +644,24 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
                 case '.':
                     fprintf(stdout, "SELECT\n");
                     break;
+
+                // Cast
+                case '~':
+                    fprintf(stdout,"CAST\n");
+
+                    // Prints type
+                    print_indents(num_indents);
+                    fprintf(stdout,"TYPE:\n");
+
+                    if(node->ast_binary_op.left_expr->ast_decl_spec.type_qual != NONE_TQ) {
+                        print_indents(num_indents);
+                        fprintf(stdout,"%s",typeQualToString(node->ast_binary_op.left_expr->ast_decl_spec.type_qual));
+                    }
+
+                    print_ast(node->ast_binary_op.left_expr->ast_decl_spec.type_specifier, num_indents+1, is_struct_union_member);
+                    print_ast(node->ast_binary_op.right_expr, num_indents+1, is_struct_union_member);
+
+                    return;
 
                 // Other
                 default:   
@@ -770,6 +788,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
 
         case TYPE_NAME_TYPE:
             fprintf(stdout, "TYPENAME\n");
+
 
             break;
 
@@ -945,6 +964,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
             
             switch(node->ast_sym_entry.sym_type) {
                 case VAR_TYPE:
+                case STRUCT_UNION_MEMBER_TYPE:
                     if(is_struct_union_member == 0) {
                         print_indents(num_indents);
                         fprintf(stdout, "Storage Class: %s.\n", storageClassToString(node->ast_sym_entry.ident_var.storage_class));

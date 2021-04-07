@@ -882,6 +882,9 @@ int add_struct_union_members(astnode *struct_union_node, astnode *members) {
     int return_val = 1;
     astnode_list_entry *curr_list_node = &(members->ast_node_list_head);
     while(curr_list_node != NULL) {
+        // Sets entry type to struct / union member
+        curr_list_node->node->ast_sym_entry.sym_type = STRUCT_UNION_MEMBER_TYPE;
+
         // Adds member to symbol table
         if(addEntryToTable(struct_union_node->ast_sym_entry.ident_struct_union_tag.sym_table,
         curr_list_node->node,0) == -1) {
