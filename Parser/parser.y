@@ -38,7 +38,7 @@
 %token<op> UNSIGNED VOID VOLATILE WHILE _BOOL _COMPLEX _IMAGINARY
 
 /* Types (in order of grammar) */
-%type<node> start_expr primary_expr postfix_expr function_call expr_list unary_expr
+%type<node> primary_expr postfix_expr function_call expr_list unary_expr
 %type<op> unary_op
 %type<node> cast_expr multiplicative_expr additive_expr shift_expr
 %type<node> relational_expr equality_expr bitwise_and_expr bitwise_xor_expr
@@ -52,7 +52,7 @@
 %type<node> struct_union_specifier
 %type<op> struct_union
 %type<node> struct_decl_list struct_decl spec_qual_list struct_declarator_list
-%type<node> struct_declarator enum_specifier 
+%type<node> struct_declarator 
 %type<op> type_qualifier
 %type<node> fnc_specifier declarator dir_declarator pointer type_qualifier_list
 %type<node> type_name abstr_declarator dir_abstr_declarator typedef_name
@@ -88,10 +88,6 @@
 
 /* EXPRESSIONS
 * -------------- */
-
-start_expr: expr ';'                {print_ast($1,0,0);}
-          | start_expr expr ';'     {print_ast($2,0,0);}
-          ;
 
 primary_expr: IDENT           { /* Searches symbol table */
                                 astnode *sym_entry = searchScopeStack($1,OTHER_NS);
@@ -289,7 +285,7 @@ type_specifier: VOID                    {$$ = create_scalar_node(VOID_ST, UNKNOW
               | _BOOL                   {$$ = create_scalar_node(BOOL_ST, UNKNOWN_SS);}
               | _COMPLEX                {/* Not supported currently */}
               | struct_union_specifier  {$$ = $1;}
-              | enum_specifier          {$$ = $1;}
+              /*| enum_specifier          {$$ = $1;} Enums not supported*/
               /*| typedef_name            {$$ = $1;} Typedefs not supported*/
               ;
 
@@ -333,7 +329,7 @@ struct_declarator_list: struct_declarator                             {$$ = init
 struct_declarator: declarator   {$$ = $1;}
                  ; /* Bit fields not supported in this compiler */
 
-enum_specifier: ; /* Enums aren't supported in this compiler */
+/* enum_specifier: ; Enums aren't supported in this compiler */
 
 type_qualifier: CONST       {$$ = CONST_TQ;}
               | RESTRICT    {$$ = RESTRICT_TQ;}
@@ -503,10 +499,10 @@ iter_stmt: WHILE '(' expr ')' statement                     {$$ = create_while_l
          | FOR '(' expr ';' ';' expr ')' statement          {$$ = create_for_loop_node($3,NULL,$6,$8);}
          | FOR '(' expr ';' expr ';' ')' statement          {$$ = create_for_loop_node($3,$5,NULL,$8);}
          | FOR '(' expr ';' expr ';' expr ')' statement     {$$ = create_for_loop_node($3,$5,$7,$9);}
-         | FOR '(' declaration ';' ')'                      {/* Not sure what to do */}
-         | FOR '(' declaration ';' expr ')'                 {/* Not sure what to do */}
-         | FOR '(' declaration expr ';' ')'                 {/* Not sure what to do */}
-         | FOR '(' declaration expr ';' expr ')'            {/* Not sure what to do */}
+         | FOR '(' declaration ';' ')'                      {/* Not supported */}
+         | FOR '(' declaration ';' expr ')'                 {/* Not supported */}
+         | FOR '(' declaration expr ';' ')'                 {/* Not supported */}
+         | FOR '(' declaration expr ';' expr ')'            {/* Not supported */}
          ;
 
 jump_stmt: GOTO IDENT ';'     {$$ = create_goto_stmt_node($2);}
