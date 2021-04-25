@@ -8,7 +8,7 @@
 // -----------------
 
 // Returns hashed index of symbol
-int hashSymbol(char *symbol, int table_capacity) {
+int hash_symbol(char *symbol, int table_capacity) {
     // Uses basic hashing
     int hash_value = 0;
 
@@ -26,10 +26,10 @@ int hashSymbol(char *symbol, int table_capacity) {
 }
 
 // Resizes table and rehashes elements in table to new table
-int rehashTable(symbolTable *sym_table) {
+int rehash_table(symbol_table *sym_table) {
     // Updates capacity
     int old_capacity = sym_table->capacity;
-    if((sym_table->capacity = getPrime(old_capacity)) == -1) {
+    if((sym_table->capacity = get_prime(old_capacity)) == -1) {
         // ERROR - Out of prime numbers
         fprintf(stderr, "ERROR: No more prime values. Cannot expand Symbol Table.\n");
         return -1;
@@ -44,7 +44,7 @@ int rehashTable(symbolTable *sym_table) {
     // Rehashes symbol entries
     for(int i = 0; i < old_capacity; i++) {
         if(temp_table[i]) {
-            addEntryToTable(sym_table, temp_table[i], 0);
+            add_entry_to_table(sym_table, temp_table[i], 0);
         }
     }
 
@@ -54,7 +54,7 @@ int rehashTable(symbolTable *sym_table) {
 }
 
 // Returns next prime in list to use as size
-int getPrime(int curr_size) {
+int get_prime(int curr_size) {
     const int prime_list_size = 8;
     const int prime_numbers[] = {61, 127, 257, 521, 1049, 2099, 4201, 8419};
 
@@ -73,15 +73,15 @@ int getPrime(int curr_size) {
 // -----------------------
 
 // Creates a new symbol table
-symbolTable *createTable() {
+symbol_table *create_table() {
     // Creates symbol table struct
-    symbolTable *sym_table;
-    if((sym_table = calloc(1,sizeof(symbolTable))) == NULL) {
+    symbol_table *sym_table;
+    if((sym_table = calloc(1,sizeof(symbol_table))) == NULL) {
         // ERROR
     }
 
     sym_table->size = 0;
-    sym_table->capacity = getPrime(0);
+    sym_table->capacity = get_prime(0);
 
     // Creates symbol table array
     if((sym_table->table = (astnode **)calloc(sym_table->capacity,sizeof(astnode))) == NULL) {
@@ -92,7 +92,7 @@ symbolTable *createTable() {
 }
 
 // Destroys given symbol table
-void destroyTable(symbolTable *sym_table) {
+void destroy_table(symbol_table *sym_table) {
     for(int i = 0; i < sym_table->capacity; i++) {
         if(sym_table->table[i]) {
             free(sym_table->table[i]);
@@ -103,9 +103,9 @@ void destroyTable(symbolTable *sym_table) {
 }
 
 // Searches symbol table for symbol
-astnode *searchTable(symbolTable *sym_table, char *symbol) {
+astnode *search_table(symbol_table *sym_table, char *symbol) {
     // Gets symbol hash (Using linear probing)
-    int hash_value = hashSymbol(symbol, sym_table->capacity);
+    int hash_value = hash_symbol(symbol, sym_table->capacity);
     while(sym_table->table[hash_value] 
         && strcmp(symbol, sym_table->table[hash_value]->ast_sym_entry.symbol) != 0) {
             hash_value = (hash_value + 1) % sym_table->capacity;
@@ -122,14 +122,14 @@ astnode *searchTable(symbolTable *sym_table, char *symbol) {
 // Adds new symbol entry to the symbol table
 // If replace == 1 --> replaces duplicate entry
 // Returns 1 on success, -1 on failure
-int addEntryToTable(symbolTable *sym_table, astnode *sym_entry, int replace) {
+int add_entry_to_table(symbol_table *sym_table, astnode *sym_entry, int replace) {
     // Checks if table needs to be made larger
-    if(2 * sym_table->size > sym_table->capacity && rehashTable(sym_table) == -1) {
+    if(2 * sym_table->size > sym_table->capacity && rehash_table(sym_table) == -1) {
         // ERROR
     }
 
     // Gets symbol hash (Using linear probing)
-    int hash_value = hashSymbol(sym_entry->ast_sym_entry.symbol, sym_table->capacity);
+    int hash_value = hash_symbol(sym_entry->ast_sym_entry.symbol, sym_table->capacity);
     while(sym_table->table[hash_value] 
         && strcmp(sym_entry->ast_sym_entry.symbol, sym_table->table[hash_value]->ast_sym_entry.symbol) != 0) {
             hash_value = (hash_value + 1) % sym_table->capacity;
@@ -157,8 +157,8 @@ int addEntryToTable(symbolTable *sym_table, astnode *sym_entry, int replace) {
 // If list is given, adds each entry in list
 // If replace == 1 --> replaces duplicate entry
 // Returns 1 on (all) success, -1 on (any) failure
-int addEntryToNamespace(int name_space, astnode *sym_entry, int replace) {
-    symbolTable *sym_table = getInnerScope()->sym_tables[name_space];
+int add_entry_to_namespace(int name_space, astnode *sym_entry, int replace) {
+    symbol_table *sym_table = get_inner_scope()->sym_tables[name_space];
 
     // Checks if list
     if(sym_entry->node_type == NODE_LIST_TYPE) {
@@ -166,20 +166,20 @@ int addEntryToNamespace(int name_space, astnode *sym_entry, int replace) {
         // Loops through each entry
         astnode_list_entry *curr_list_node = &(sym_entry->ast_node_list_head);
         while(curr_list_node != NULL) {
-            if(addEntryToTable(sym_table,curr_list_node->node,replace) == -1) {
+            if(add_entry_to_table(sym_table,curr_list_node->node,replace) == -1) {
                 return_val = -1;
             }
             curr_list_node = curr_list_node->next;
         }
         return return_val;
     } else {
-        return addEntryToTable(sym_table,sym_entry,replace);
+        return add_entry_to_table(sym_table,sym_entry,replace);
     }
     
 }
 
 // Given symbol table, returns astnode list of table members
-astnode *getTableMembers(symbolTable *sym_table) {
+astnode *get_table_members(symbol_table *sym_table) {
     astnode *node_list = NULL;
 
     // Loops through table
@@ -200,29 +200,29 @@ astnode *getTableMembers(symbolTable *sym_table) {
 // ----------------------
 
 // Scope stack for program
-static scopeStack *scope_stack;
+static scope_stack *program_stack;
 
 // Initializes Scope Stack with File Scope
 // Run once at start of parser
-void initScopeStack() {
+void init_scope_stack() {
     // Creates stack
-    if((scope_stack = malloc(sizeof(scopeStack))) == NULL) {
+    if((program_stack = malloc(sizeof(scope_stack))) == NULL) {
         // ERROR - unable to create new scope stack
         return;
     }
 
-    scope_stack->innermost_scope = NULL;
-    scope_stack->outermost_scope = NULL;
+    program_stack->innermost_scope = NULL;
+    program_stack->outermost_scope = NULL;
 
     // Creates file scope
-    createNewScope(FILE_SCOPE);
+    create_new_scope(FILE_SCOPE);
 }
 
 // Creates new scope and adds to stack
-void createNewScope(int scope_type) {
+void create_new_scope(int scope_type) {
     // Creates new scope
-    scopeEntry *new_scope;
-    if((new_scope = calloc(1,sizeof(scopeEntry))) == NULL) {
+    scope_entry *new_scope;
+    if((new_scope = calloc(1,sizeof(scope_entry))) == NULL) {
         // ERROR - unable to create new scope
         return;
     }
@@ -233,51 +233,51 @@ void createNewScope(int scope_type) {
 
     // Creates symbol tables for each namespace
     for(int i = 0; i < 3; i++) {
-        new_scope->sym_tables[i] = createTable();
+        new_scope->sym_tables[i] = create_table();
     }
 
     // Adds to scope stack
-    new_scope->scope_up = scope_stack->innermost_scope;
-    scope_stack->innermost_scope = new_scope;
-    if(scope_stack->outermost_scope == NULL) {
-        scope_stack->outermost_scope = new_scope;
+    new_scope->scope_up = program_stack->innermost_scope;
+    program_stack->innermost_scope = new_scope;
+    if(program_stack->outermost_scope == NULL) {
+        program_stack->outermost_scope = new_scope;
     }
 }
 
 // Deletes innermost scope
-void deleteInnerScope() {
+void delete_inner_scope() {
     // Checks for empty stack
-    if(scope_stack->innermost_scope == NULL) {
+    if(program_stack->innermost_scope == NULL) {
         // ERROR - Trying to delete empty stack
     }
 
     // Frees symbol tables of namespaces
     for(int i = 0; i < 3; i++) {
-        free(scope_stack->innermost_scope->sym_tables[i]);
+        free(program_stack->innermost_scope->sym_tables[i]);
     }
 
     // Updates new inner scope and frees old one
-    scopeEntry *new_inner_scope = scope_stack->innermost_scope->scope_up;
-    free(scope_stack->innermost_scope);
-    scope_stack->innermost_scope = new_inner_scope;
+    scope_entry *new_inner_scope = program_stack->innermost_scope->scope_up;
+    free(program_stack->innermost_scope);
+    program_stack->innermost_scope = new_inner_scope;
 
     // Checks if table now empty
     if(new_inner_scope == NULL) {
-        scope_stack->outermost_scope = NULL;
+        program_stack->outermost_scope = NULL;
     }
 }
 
 // Returns innermost /  current scope
-scopeEntry *getInnerScope() {
-    return scope_stack->innermost_scope;
+scope_entry *get_inner_scope() {
+    return program_stack->innermost_scope;
 }
 
 // Searches entire scope stack for symbol, inner --> outer
-astnode *searchScopeStack(char *symbol, int symbol_namespace) {
+astnode *search_scope_stack(char *symbol, int symbol_namespace) {
     astnode *symbol_node;
-    for(scopeEntry *curr_scope = scope_stack->innermost_scope; curr_scope != NULL; curr_scope = curr_scope->scope_up) {
+    for(scope_entry *curr_scope = program_stack->innermost_scope; curr_scope != NULL; curr_scope = curr_scope->scope_up) {
         // Searches given namespace in current scope
-        symbol_node = searchTable(curr_scope->sym_tables[symbol_namespace], symbol);
+        symbol_node = search_table(curr_scope->sym_tables[symbol_namespace], symbol);
 
         // Checks if symbol was found
         if(symbol_node != NULL) {
@@ -291,7 +291,7 @@ astnode *searchScopeStack(char *symbol, int symbol_namespace) {
 // Printing Functions
 // -------------------
 
-char *scopeTypeToString(int scope_type) {
+char *scope_type_to_string(int scope_type) {
     switch(scope_type) {
         case FILE_SCOPE:
             return "FILE";

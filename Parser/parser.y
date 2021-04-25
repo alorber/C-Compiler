@@ -55,7 +55,7 @@
 %type<node> struct_declarator 
 %type<op> type_qualifier
 %type<node> fnc_specifier declarator dir_declarator pointer type_qualifier_list
-%type<node> type_name abstr_declarator dir_abstr_declarator typedef_name
+%type<node> type_name abstr_declarator dir_abstr_declarator
 %type<node> initializer fnc_def fnc_block statement labeled_stmt compound_stmt
 %type<node> block_item_list block_item expr_stmt selection_stmt iter_stmt jump_stmt
 
@@ -90,7 +90,7 @@
 * -------------- */
 
 primary_expr: IDENT           { /* Searches symbol table */
-                                astnode *sym_entry = searchScopeStack($1,OTHER_NS);
+                                astnode *sym_entry = search_scope_stack($1,OTHER_NS);
                                 // If not found, error
                                 if(sym_entry == NULL) {
                                     fprintf(stderr, "ERROR: UNKNOWN IDENT %s.\n",$1);
@@ -236,7 +236,7 @@ decl_or_fnc_def: declaration    {print_ast($1,0,0);}
 
 declaration: decl_specifier ';'                   {$$ = $1;}
            | decl_specifier init_decl_list ';'    {$$ = merge_spec_decl_list($1,$2);
-                                                   addEntryToNamespace(OTHER_NS,$$,0);}
+                                                   add_entry_to_namespace(OTHER_NS,$$,0);}
            ;
 
 decl_specifier: storage_class_specifier                     {$$ = $1;}
@@ -390,8 +390,8 @@ dir_abstr_declarator: '(' abstr_declarator ')'              {$$ = $2;}
                                                             }
                     ;
 
-typedef_name: IDENT   {/* Should this return value from symbol table? */}
-            ;
+// typedef_name: IDENT   {/* Should this return value from symbol table? */}
+//            ;
 
 initializer: assignment_expr   {$$ = $1;} 
            /*  Initialized declarations not supported */
@@ -399,7 +399,7 @@ initializer: assignment_expr   {$$ = $1;}
 
 fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                      /* If yes, updates entry fields */
-                                     $<node>$ = searchScopeStack($2->ast_sym_entry.symbol,OTHER_NS);
+                                     $<node>$ = search_scope_stack($2->ast_sym_entry.symbol,OTHER_NS);
                                      /* If no, uses new entry & adds to scope */
                                      int add_to_scope = 0;
                                      if($<node>$ == NULL) {
@@ -419,7 +419,7 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                      build_declarator($1->ast_decl_spec.type_specifier,$<node>$); 
 
                                      if(add_to_scope) {
-                                         addEntryToNamespace(OTHER_NS,$<node>$,0);
+                                         add_entry_to_namespace(OTHER_NS,$<node>$,0);
                                      }
                                     
                                      // Prints function declaration
@@ -431,13 +431,13 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
        ;
 
 fnc_block: '{'                       {/* Creates new scope */
-                                     createNewScope(FUNCTION_SCOPE);} 
-           block_item_list '}'      {$$ = create_compound_stmt_node($3,getInnerScope());
+                                     create_new_scope(FUNCTION_SCOPE);} 
+           block_item_list '}'      {$$ = create_compound_stmt_node($3,get_inner_scope());
                                      /* Prints */
                                      /* fprintf(stdout,"AST DUMP FOR FUNCTION:\n");*/
                                      print_ast($3,0,0);
                                      /* Removes inner scope */
-                                     deleteInnerScope();
+                                     delete_inner_scope();
                                     }
         ;
 
@@ -459,13 +459,13 @@ labeled_stmt: IDENT ':' statement           {$$ = create_label_stmt_node(GOTO_LA
 
 compound_stmt: '{' '}'                  {$$ = create_compound_stmt_node(NULL,NULL);}
              | '{'                      {/* Creates new scope */
-                                         createNewScope(BLOCK_SCOPE);} 
-                block_item_list '}'     {$$ = create_compound_stmt_node($3,getInnerScope());
+                                         create_new_scope(BLOCK_SCOPE);} 
+                block_item_list '}'     {$$ = create_compound_stmt_node($3,get_inner_scope());
                                          /* Prints */
                                          /*fprintf(stdout,"AST DUMP FOR BLOCK:\n");
                                          print_ast($3,0,0); */
                                          /* Removes inner scope */
-                                         deleteInnerScope();
+                                         delete_inner_scope();
                                         }
              ;
 
@@ -520,7 +520,7 @@ jump_stmt: GOTO IDENT ';'     {$$ = create_goto_stmt_node($2);}
 
 int main() {
     yydebug = 0;   // Set value to 1 to enable debugging
-    initScopeStack();  // Creates Scope Stack
+    init_scope_stack();  // Creates Scope Stack
     yyparse();
     return 0;
 }
@@ -651,7 +651,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
 
                     if(node->ast_binary_op.left_expr->ast_decl_spec.type_qual != NONE_TQ) {
                         print_indents(num_indents);
-                        fprintf(stdout,"%s",typeQualToString(node->ast_binary_op.left_expr->ast_decl_spec.type_qual));
+                        fprintf(stdout,"%s",type_qual_to_string(node->ast_binary_op.left_expr->ast_decl_spec.type_qual));
                     }
 
                     print_ast(node->ast_binary_op.left_expr->ast_decl_spec.type_specifier, num_indents+1, is_struct_union_member);
@@ -920,7 +920,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
         // -----
 
         case SCALAR_TYPE:
-            fprintf(stdout, "%s\n", scalarToString(node));
+            fprintf(stdout, "%s\n", scalar_to_string(node));
             
             break;
 
@@ -946,7 +946,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
         // ------------
 
         case SYM_ENTRY_TYPE:
-            fprintf(stdout, "SYMBOL %s as %s @ line %i in file %s.\n", node->ast_sym_entry.symbol, identTypeToString(node), node->ast_sym_entry.line_num, node->ast_sym_entry.filename);
+            fprintf(stdout, "SYMBOL %s as %s @ line %i in file %s.\n", node->ast_sym_entry.symbol, ident_type_to_string(node), node->ast_sym_entry.line_num, node->ast_sym_entry.filename);
             print_indents(num_indents);
 
             // Doesn't print if struct / union member
@@ -954,8 +954,8 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
                 fprintf(stdout, "In STRUCT / UNION scope.\n");
             } else {
                 // Gets scope of variable
-                scopeEntry *curr_scope = getInnerScope();
-                fprintf(stdout, "In %s scope, which began @ line %i in file %s.\n", scopeTypeToString(curr_scope->scope), curr_scope->scope_start_line, curr_scope->scope_start_file);
+                scope_entry *curr_scope = get_inner_scope();
+                fprintf(stdout, "In %s scope, which began @ line %i in file %s.\n", scope_type_to_string(curr_scope->scope), curr_scope->scope_start_line, curr_scope->scope_start_file);
             }
             
             switch(node->ast_sym_entry.sym_type) {
@@ -963,7 +963,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
                 case STRUCT_UNION_MEMBER_TYPE:
                     if(is_struct_union_member == 0) {
                         print_indents(num_indents);
-                        fprintf(stdout, "Storage Class: %s.\n", storageClassToString(node->ast_sym_entry.ident_var.storage_class));
+                        fprintf(stdout, "Storage Class: %s.\n", storage_class_to_string(node->ast_sym_entry.ident_var.storage_class));
                     }
 
                     print_indents(num_indents);
@@ -971,7 +971,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
 
                     if(node->ast_sym_entry.ident_var.type_qual != NONE_TQ) {
                         print_indents(num_indents+1);
-                        fprintf(stdout,"%s",typeQualToString(node->ast_sym_entry.ident_var.type_qual));
+                        fprintf(stdout,"%s",type_qual_to_string(node->ast_sym_entry.ident_var.type_qual));
                     }
                     
                     print_ast(node->ast_sym_entry.sym_node, num_indents+1, is_struct_union_member);
@@ -980,7 +980,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
                     
                 case FNC_NAME_TYPE:
                     print_indents(num_indents);
-                    fprintf(stdout, "Storage Class: %s.\n", storageClassToString(node->ast_sym_entry.ident_fnc_name.storage_class));
+                    fprintf(stdout, "Storage Class: %s.\n", storage_class_to_string(node->ast_sym_entry.ident_fnc_name.storage_class));
                     print_indents(num_indents);
                     fprintf(stdout, "RETURN TYPE:\n");
                     print_ast(node->ast_sym_entry.ident_fnc_name.return_type, num_indents+1, is_struct_union_member);
@@ -995,7 +995,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
                     } else if(node->ast_sym_entry.symbol == NULL) {
                         print_indents(num_indents);
                         fprintf(stdout, "MEMBERS: \n");
-                        print_ast(getTableMembers(node->ast_sym_entry.ident_struct_union_tag.sym_table),num_indents+1,1);   
+                        print_ast(get_table_members(node->ast_sym_entry.ident_struct_union_tag.sym_table),num_indents+1,1);   
                     } else {
                         return;
                     }

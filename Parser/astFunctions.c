@@ -288,7 +288,7 @@ astnode *merge_spec_decl_list(astnode *spec, astnode* decl_list) {
                 break;
 
             default:
-                fprintf(stderr, "Unknown symbol table entry type %i or %s.\n", curr_sym_entry->ast_sym_entry.sym_type, identTypeToString(curr_sym_entry));
+                fprintf(stderr, "Unknown symbol table entry type %i or %s.\n", curr_sym_entry->ast_sym_entry.sym_type, ident_type_to_string(curr_sym_entry));
                 break;
         }
 
@@ -311,7 +311,7 @@ void fill_defaults(astnode *specifier) {
     // Checks if storage class is needed
     if(specifier->ast_decl_spec.storage_class == UNKNOWN_SC) {
         // Checks current scope
-        int curr_scope = getInnerScope()->scope;
+        int curr_scope = get_inner_scope()->scope;
         if(curr_scope == FILE_SCOPE) {
             specifier->ast_decl_spec.storage_class = EXTERN_SC;
         } else {
@@ -498,7 +498,7 @@ astnode *create_label_stmt_node(int label_type, astnode *label, astnode *stateme
     // Checks label type
     if(label_type == GOTO_LABEL) {
         // Checks symbol table
-        astnode *label_sym_table_entry = searchScopeStack(label->ast_ident.ident,LABEL_NS);
+        astnode *label_sym_table_entry = search_scope_stack(label->ast_ident.ident,LABEL_NS);
 
         // If symbol doesn't exist, adds to symbol table
         if(label_sym_table_entry == NULL) {
@@ -506,7 +506,7 @@ astnode *create_label_stmt_node(int label_type, astnode *label, astnode *stateme
             label_sym_table_entry->ast_sym_entry.sym_type = LABEL_TYPE;
             label_sym_table_entry->ast_sym_entry.sym_node = statement;
 
-            addEntryToNamespace(LABEL_NS,label_sym_table_entry,0);
+            add_entry_to_namespace(LABEL_NS,label_sym_table_entry,0);
         }
         // If symbol exists, checks if already declared
         else if(label_sym_table_entry->ast_sym_entry.sym_node != NULL) {
@@ -526,7 +526,7 @@ astnode *create_label_stmt_node(int label_type, astnode *label, astnode *stateme
     return label_stmt_node;
 }
 
-astnode *create_compound_stmt_node(astnode *statement_block, struct scopeEntry *block_scope) {
+astnode *create_compound_stmt_node(astnode *statement_block, struct scope_entry *block_scope) {
     astnode *compound_stmt_node = allocate_node_mem();
     compound_stmt_node->node_type = COMPOUND_STMT_TYPE;
     compound_stmt_node->ast_compound_stmt.statement_block = statement_block;
@@ -580,12 +580,12 @@ astnode *create_goto_stmt_node(char *label) {
     goto_stmt_node->node_type = GOTO_STMT_TYPE;
     
     // Checks if label is already in symbol table
-    astnode *label_sym_entry = searchScopeStack(label,LABEL_NS);
+    astnode *label_sym_entry = search_scope_stack(label,LABEL_NS);
     // If not, adds to symbol table
     if(label_sym_entry == NULL) {
         label_sym_entry = create_sym_table_entry(strdup(label));
         label_sym_entry->ast_sym_entry.sym_type = LABEL_TYPE;
-        addEntryToNamespace(LABEL_NS,label_sym_entry,0);
+        add_entry_to_namespace(LABEL_NS,label_sym_entry,0);
     }
     
     goto_stmt_node->ast_goto_stmt.label = label_sym_entry;
@@ -837,7 +837,7 @@ astnode *create_struct_union_sym_entry(int struct_or_union, char *ident, int is_
 
     // If not abstract, checks if already defined
     if(is_abstract == 0) {
-        astnode *lookup = searchTable(getInnerScope()->sym_tables[TAG_NS],ident);
+        astnode *lookup = search_table(get_inner_scope()->sym_tables[TAG_NS],ident);
 
         if(lookup) {
             free(struct_union_node);
@@ -850,7 +850,7 @@ astnode *create_struct_union_sym_entry(int struct_or_union, char *ident, int is_
         }
         // Else, adds to symbol table
         else {
-            addEntryToNamespace(TAG_NS,struct_union_node,0);
+            add_entry_to_namespace(TAG_NS,struct_union_node,0);
         }
     }
 
@@ -865,7 +865,7 @@ astnode *create_struct_union_sym_entry(int struct_or_union, char *ident, int is_
 int add_struct_union_members(astnode *struct_union_node, astnode *members) {
     // Checks if previously defined
     if(struct_union_node->ast_sym_entry.symbol != NULL) {
-        astnode *lookup = searchTable(getInnerScope()->sym_tables[TAG_NS],struct_union_node->ast_sym_entry.symbol);
+        astnode *lookup = search_table(get_inner_scope()->sym_tables[TAG_NS],struct_union_node->ast_sym_entry.symbol);
 
         if(lookup && struct_union_node->ast_sym_entry.ident_struct_union_tag.is_defined) {
                 // ERROR - Already defined
@@ -876,7 +876,7 @@ int add_struct_union_members(astnode *struct_union_node, astnode *members) {
 
 
     // Creates symbol table
-    struct_union_node->ast_sym_entry.ident_struct_union_tag.sym_table = createTable();
+    struct_union_node->ast_sym_entry.ident_struct_union_tag.sym_table = create_table();
 
     // Loops through members
     int return_val = 1;
@@ -886,7 +886,7 @@ int add_struct_union_members(astnode *struct_union_node, astnode *members) {
         curr_list_node->node->ast_sym_entry.sym_type = STRUCT_UNION_MEMBER_TYPE;
 
         // Adds member to symbol table
-        if(addEntryToTable(struct_union_node->ast_sym_entry.ident_struct_union_tag.sym_table,
+        if(add_entry_to_table(struct_union_node->ast_sym_entry.ident_struct_union_tag.sym_table,
         curr_list_node->node,0) == -1) {
             return_val = -1;
         }
@@ -903,7 +903,7 @@ int add_struct_union_members(astnode *struct_union_node, astnode *members) {
 // -------------------
 
 // Converts storage class enum to string for printing
-char *storageClassToString(int storage_class) {
+char *storage_class_to_string(int storage_class) {
     switch(storage_class) {
         case AUTO_SC:
             return "AUTO";
@@ -922,7 +922,7 @@ char *storageClassToString(int storage_class) {
 
 // Converts type qualifier enum to string for printing
 // TODO: Use bitwise and to check each type
-char *typeQualToString(int type_qual) {
+char *type_qual_to_string(int type_qual) {
     char *type_qual_string = malloc(25 * sizeof(char));
     
     // Checks if const
@@ -941,7 +941,7 @@ char *typeQualToString(int type_qual) {
     return type_qual_string;
 }
 
-char *scalarToString(astnode *scalar_node) {
+char *scalar_to_string(astnode *scalar_node) {
     char *scalar_sign;
     char *scalar_type;
 
@@ -1004,7 +1004,7 @@ char *scalarToString(astnode *scalar_node) {
 }
 
 // Converts IDENT type enum to string for printing
-char *identTypeToString(astnode *node) {
+char *ident_type_to_string(astnode *node) {
     int ident_type = node->ast_sym_entry.sym_type;
 
     switch(ident_type) {

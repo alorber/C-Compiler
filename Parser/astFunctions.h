@@ -160,7 +160,7 @@ typedef struct astnode_label_stmt {
 // Compound Statement
 typedef struct astnode_compound_stmt {
     struct astnode *statement_block; // List of statements in block;
-    struct scopeEntry *block_scope;  // Symbol table of block scope
+    struct scope_entry *block_scope;  // Symbol table of block scope
 } astnode_compound_stmt;
 
 // If Else statement
@@ -295,7 +295,7 @@ typedef struct astnode_ident_enum_const {
 // Struct & Union Tag
 typedef struct astnode_ident_struct_union_tag {
     int is_struct;                   // 1 if struct, 0 if union
-    struct symbolTable *sym_table;   // Symbol Table of member definitions
+    struct symbol_table *sym_table;   // Symbol Table of member definitions
     int is_defined;                  // Whether definition is complete (1 = yes)
 } astnode_ident_struct_union_tag;
 
@@ -449,7 +449,7 @@ astnode *create_type_name_node(astnode *spec_qual_list, astnode *abstr_decl);
 // ---------------
 
 astnode *create_label_stmt_node(int label_type, astnode *label, astnode *statement);
-astnode *create_compound_stmt_node(astnode *statement_block, struct scopeEntry *block_scope);
+astnode *create_compound_stmt_node(astnode *statement_block, struct scope_entry *block_scope);
 astnode *create_if_else_node(astnode *if_condition, astnode *if_body, astnode *else_body);
 astnode *create_while_loop_node(int is_do_while, astnode *condition, astnode *body);
 astnode *create_for_loop_node(astnode *initialization, astnode *condition, astnode *update, astnode *body);
@@ -493,15 +493,15 @@ int add_struct_union_members(astnode *struct_union_node, astnode *members);
 // ------------------
 
 // Converts storage class enum to string for printing
-char *storageClassToString(int storage_class);
+char *storage_class_to_string(int storage_class);
 
 // Converts type qualifier enum to string for printing
-char *typeQualToString(int type_qual);
+char *type_qual_to_string(int type_qual);
 
 // Converts scalar node to string representing value
-char *scalarToString(astnode *scalar_node);
+char *scalar_to_string(astnode *scalar_node);
 
 // Converts IDENT type enum to string for printing
-char *identTypeToString(astnode *node);
+char *ident_type_to_string(astnode *node);
 
 #endif // ASTFUNCTIONS_H
