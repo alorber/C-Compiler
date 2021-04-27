@@ -52,7 +52,6 @@ Mkfile.old
 dkms.conf
 
 # Bison Files
-parser
 parser.tab.*
 parser.output
 
