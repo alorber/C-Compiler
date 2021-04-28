@@ -53,7 +53,8 @@ enum op_codes {
     GT_OC,
     LTEQ_OC,
     GTEQ_OC,
-    CMP_OC
+    CMP_OC,
+    RETURN_OC
 };
 
 enum op_sizes {
@@ -123,11 +124,11 @@ void gen_do_while_loop_IR(astnode *node);
 void gen_for_loop_IR(astnode *node);
 
 // Generates IR for break
-void gen_break_IR();
+void gen_break_stmt_IR();
 
 // Generates IR for continue
-void gen_continue_IR();
+void gen_continue_stmt_IR();
 
 // Generates IR for return
-void gen_return_IR(astnode *node);
+void gen_return_stmt_IR(astnode *node);
 #endif // QUADS_H

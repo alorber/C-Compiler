@@ -64,7 +64,7 @@ void generate_function_quads() {
 }
 
 // Given AST node, recursively generates quads
-void generate_quads(struct astnode *node) {
+void generate_quads(astnode *node) {
 
     // Checks node type
     switch(node->node_type) {
@@ -72,13 +72,62 @@ void generate_quads(struct astnode *node) {
         case BINARY_TYPE:
             if(node->ast_binary_op.op == '=') {
                 gen_assignment_IR(node);
-                return NULL;
+                return;
             }
 
         // If statement
         case IF_ELSE_TYPE:
             gen_if_stmt_IR(node);
-            return NULL;
+            return;
+
+        // (Do) While loop
+        case WHILE_LOOP_TYPE:
+            // Do while loop
+            if(node->ast_while_loop.is_do_while) {
+                gen_do_while_loop_IR(node)
+            }
+            // While loop
+            else {
+                gen_while_loop_IR(node);
+            }
+            
+            return;
+
+        // For loop
+        case FOR_LOOP_TYPE:
+            gen_for_loop_IR(node);
+            return;
+
+        // Break / Continue statement
+        case CONTINUE_BREAK_STMT_TYPE:
+            // Break Statement
+            if(node->ast_continue_break_stmt.type == BREAK_STMT) {
+                gen_break_stmt_IR();
+            }
+            // Continue Statement
+            else {
+                gen_continue_stmt_IR();
+            }
+            
+            return;
+
+        // Return statement
+        case RETURN_TYPE:
+            gen_return_stmt_IR(node);
+            return;
+
+        // Compound statement
+        case COMPOUND_STMT_TYPE:
+            // Loop through statements
+            astnode_list_entry *curr_statement = node->ast_compound_stmt.statement_block->ast_node_list_head;
+            while(curr_statement != NULL) {
+                // Don't want to pass null node
+                if(curr_statement->node != NULL) {
+                    generate_quads(curr_statement->node);
+                }
+                curr_statement = curr_statement->next;
+            }
+            return;
     }
 
     fprintf(stderr, "No quads to generate.\n");
@@ -494,16 +543,28 @@ void gen_for_loop_IR(astnode *node) {
 }
 
 // Generates IR for break
-void gen_break_IR() {
-    // How should I do this?
+void gen_break_stmt_IR() {
+    // Checks if break block has been set
+    if(break_block != NULL) {
+        link_blocks(NULL, break_block, NONE_OC);
+        // Do I make a new block?
+    } else {
+        fprintf(stderr, "ERROR: No break block set.\n");
+    }
 }
 
 // Generates IR for continue
-void gen_continue_IR() {
-    // How should I do this?
+void gen_continue_stmt_IR() {
+    // Checks if continue block has been set
+    if(continue_block != NULL) {
+        link_blocks(NULL, continue_block, NONE_OC);
+        // Do I make a new block?
+    } else {
+        fprintf(stderr, "ERROR: No continue block set.\n");
+    }
 }
 
 // Generates IR for return
-void gen_return_IR(astnode *node) {
-    // How should I do this?
+void gen_return_stmt_IR(astnode *node) {
+    emit_quad(RETURN_OC, NULL, get_rvalue(node->ast_return.return_expr,NULL), NULL, NULL);
 }
