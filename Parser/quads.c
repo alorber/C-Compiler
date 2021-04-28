@@ -52,7 +52,7 @@ void set_block(basic_block *block) {
 
 // Links given block(s) with current basic block
 // Branch is set to the true branch, while next is set to the false branch
-void link_blocks(astnode *true_branch, astnode *false_branch, int op_code) {
+void link_blocks(basic_block *true_branch, basic_block *false_branch, int op_code) {
     curr_block->next = false_branch;
     curr_block->branch = true_branch;
     curr_block->branch_condition = op_code;
@@ -289,8 +289,8 @@ void gen_if_stmt_IR(astnode *node) {
     }
 
     // Creates basic blocks for branches
-    astnode *true_block = create_basic_block(NULL);
-    astnode *false_block = create_basic_block(NULL);
+    basic_block *true_block = create_basic_block(NULL);
+    basic_block *false_block = create_basic_block(NULL);
 
     // Checks if else statement
     astnode *next_block;
@@ -301,7 +301,7 @@ void gen_if_stmt_IR(astnode *node) {
     }
 
     // Creates quads for conditional expression
-    gen_conditional_expr_IR(node->ast_if_else.if_condition, node->ast_if_else.if_body, node->ast_if_else.else_body);
+    gen_conditional_expr_IR(node->ast_if_else.if_condition, true_block, false_block);
 
     // Creates quads for true branch
     set_block(true_block);
@@ -323,7 +323,7 @@ void gen_if_stmt_IR(astnode *node) {
 }
 
 // Generates IR for conditional expression
-void gen_conditional_expr_IR(astnode *cond_expr, astnode *true_branch, astnode *false_branch) {
+void gen_conditional_expr_IR(astnode *cond_expr, basic_block *true_branch, basic_block *false_branch) {
     // Checks if comparative expression
     if(cond_expr->node_type == BINARY_TYPE) {
         int op_code = -1;
@@ -391,5 +391,119 @@ void gen_conditional_expr_IR(astnode *cond_expr, astnode *true_branch, astnode *
 
 // Generates IR for while loop
 void gen_while_loop_IR(astnode *node) {
+    // Creates blocks
+    basic_block *condition_block = create_basic_block(NULL);
+    basic_block *loop_block = create_basic_block(NULL);
+    basic_block *next_block = create_basic_block(NULL);
+
+    // Links current block to condition block
+    link_blocks(NULL, condition_block, NONE_OC);
+    set_block(condition_block);
+
+    // Stores previous values for break and continue blocks
+    basic_block *prev_break_block = break_block ? break_block : NULL;
+    basic_block *prev_continue_block = continue_block ? continue_block : NULL;
+    break_block = next_block;
+    continue_block = condition_block;
+
+    gen_conditional_expr_IR(node->ast_while_loop.condition, loop_block, next_block);
+
+    // Generates quads for loop
+    set_block(loop_block);
+    generate_quads(node->ast_while_loop.body);
+
+    // Resets break and continue blocks to previous values
+    break_block = prev_break_block ? prev_break_block : NULL;
+    continue_block = prev_continue_block ? prev_continue_block : NULL;
+
+    set_block(next_block);
+}
+
+// Generates IR for do while loop
+void gen_do_while_loop_IR(astnode *node) {
+    // Creates blocks
+    basic_block *condition_block = create_basic_block(NULL);
+    basic_block *loop_block = create_basic_block(NULL);
+    basic_block *next_block = create_basic_block(NULL);
+
+    // Links current block -> loop block -> condition block
+    link_blocks(NULL, loop_block, NONE_OC);
+    set_block(loop_block);
+    link_blocks(NULL, condition_block, NONE_OC);
     
+    // Stores previous values for break and continue blocks
+    basic_block *prev_break_block = break_block ? break_block : NULL;
+    basic_block *prev_continue_block = continue_block ? continue_block : NULL;
+    break_block = next_block;
+    continue_block = condition_block;
+
+    generate_quads(node->ast_while_loop.body);
+
+    set_block(condition_block);
+    gen_conditional_expr_IR(node->ast_while_loop.condition, loop_block, next_block);
+
+    // Resets break and continue blocks to previous values
+    break_block = prev_break_block ? prev_break_block : NULL;
+    continue_block = prev_continue_block ? prev_continue_block : NULL;
+
+    set_block(next_block);
+}
+
+// Generates IR for for loop
+void gen_for_loop_IR(astnode *node) {
+    // Creates blocks
+    basic_block *condition_block = create_basic_block(NULL);
+    basic_block *update_block = create_basic_block(NULL);
+    basic_block *loop_block = create_basic_block(NULL);
+    basic_block *next_block = create_basic_block(NULL);
+    
+    // Initialize variables
+    generate_quads(node->ast_for_loop.initialization);
+
+    // Links current block to condition block
+    link_blocks(NULL, condition_block, NONE_OC);
+    set_block(condition_block);
+
+    // Stores previous values for break and continue blocks
+    basic_block *prev_break_block = break_block ? break_block : NULL;
+    basic_block *prev_continue_block = continue_block ? continue_block : NULL;
+    break_block = next_block;
+    continue_block = condition_block;
+
+    gen_conditional_expr_IR(node->ast_for_loop.condition, loop_block, next_block);
+
+    // Generates quads for loop
+    set_block(loop_block);
+    generate_quads(node->ast_for_loop.body);
+
+    // Links loop block to update block
+    link_blocks(NULL, update_block, NONE_OC);
+
+    // Generates quads for update
+    set_block(update_block);
+    generate_quads(node->ast_for_loop.update);
+
+    // Links update block to condition block
+    link_blocks(NULL, condition_block, NONE_OC);
+
+    // Resets break and continue blocks to previous values
+    break_block = prev_break_block ? prev_break_block : NULL;
+    continue_block = prev_continue_block ? prev_continue_block : NULL;
+
+    set_block(next_block);
+}
+
+// Generates IR for break
+void gen_break_IR() {
+    // How should I do this?
+}
+
+// Generates IR for continue
+void gen_continue_IR() {
+    // How should I do this?
+}
+
+// Generates IR for return
+void gen_return_IR(astnode *node) {
+    // How should I do this?
 }

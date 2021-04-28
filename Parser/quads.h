@@ -84,7 +84,7 @@ void set_block(basic_block *block);
 
 // Links given block(s) with current basic block
 // Branch is set to the true branch, while next is set to the false branch
-void link_blocks(astnode *true_branch, astnode *false_branch, int op_code);
+void link_blocks(basic_block *true_branch, basic_block *false_branch, int op_code);
 
 // Generates the quads for a function and stores blocks in linked list
 void generate_function_quads();
@@ -111,8 +111,23 @@ void gen_assignment_IR(astnode *node);
 void gen_if_stmt_IR(astnode *node);
 
 // Generates IR for conditional expression
-void gen_conditional_expr_IR(astnode *cond_expr, astnode *true_branch, astnode *false_branch);
+void gen_conditional_expr_IR(astnode *cond_expr, basic_block *true_branch, basic_block *false_branch);
 
 // Generates IR for while loop
 void gen_while_loop_IR(astnode *node);
+
+// Generates IR for do while loop
+void gen_do_while_loop_IR(astnode *node);
+
+// Generates IR for for loop
+void gen_for_loop_IR(astnode *node);
+
+// Generates IR for break
+void gen_break_IR();
+
+// Generates IR for continue
+void gen_continue_IR();
+
+// Generates IR for return
+void gen_return_IR(astnode *node);
 #endif // QUADS_H
