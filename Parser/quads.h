@@ -33,20 +33,24 @@ typedef struct quad_list_entry {
 
 enum op_codes {
     NONE_OC = 0,
+    // Addressing & Assigning
     LOAD_OC,
     STORE_OC,
     LEA_OC,
     MOV_OC,
+    // Arithmetic Operations
     ADD_OC,
     SUB_OC,
     MUL_OC,
     DIV_OC,
     MOD_OC,
+    // Bitwise Operators
     AND_OC,
     OR_OC,
     XOR_OC,
     SHL_OC,
     SHR_OC,
+    // Comparison Operators
     EQEQ_OC,
     NEQ_OC,
     LT_OC,
@@ -54,7 +58,11 @@ enum op_codes {
     LTEQ_OC,
     GTEQ_OC,
     CMP_OC,
-    RETURN_OC
+    // Function Operators
+    RETURN_OC,
+    ARGBEGIN_OC,
+    ARG_OC,
+    CALL_OC
 };
 
 enum op_sizes {
@@ -131,4 +139,8 @@ void gen_continue_stmt_IR();
 
 // Generates IR for return
 void gen_return_stmt_IR(astnode *node);
+
+// Generates IR for function call
+void gen_fnc_call_IR(astnode *node);
+
 #endif // QUADS_H

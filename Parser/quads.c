@@ -68,6 +68,8 @@ void generate_quads(astnode *node) {
 
     // Checks node type
     switch(node->node_type) {
+        // TODO: ++ & --
+
         // Assignment
         case BINARY_TYPE:
             if(node->ast_binary_op.op == '=') {
@@ -114,6 +116,11 @@ void generate_quads(astnode *node) {
         // Return statement
         case RETURN_TYPE:
             gen_return_stmt_IR(node);
+            return;
+
+        // Function call
+        case FUNCTION_CALL_TYPE:
+            gen_fnc_call_IR(node);
             return;
 
         // Compound statement
@@ -196,6 +203,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
         case NUMBER_TYPE:
         case CHARLIT_TYPE:
         case STRING_TYPE:
+        case IDENT_TYPE:
             return node;
 
         // Binary Operations
@@ -265,6 +273,33 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                 }
 
                 emit_quad(LOAD_OC, NULL, addr, NULL, target);
+                return target;
+            }
+            // Address of operator
+            if(node->ast_unary_op.op == '&') {
+                
+            }
+            // Increment & Decrement
+            if(node->ast_unary_op.op == PLUSPLUS || node->ast_unary_op.op == MINUSMINUS) {
+
+            }
+            // Other Unary Operators
+            int op_code = -1;
+            switch(node->ast_unary_op.op) {
+                case '+':
+                case '-':
+                case '!':
+                case '~':
+            }
+
+            // Checks if target
+            if(target == NULL) {
+                target = create_temp_node();
+            }
+
+            // Checks if expression was found (Should always pass)
+            if(op > 0) {
+                emit_quad(op_code, NULL, get_rvalue(node->ast_unary_op.expr, NULL), NULL, target);
                 return target;
             }
     }
@@ -567,4 +602,23 @@ void gen_continue_stmt_IR() {
 // Generates IR for return
 void gen_return_stmt_IR(astnode *node) {
     emit_quad(RETURN_OC, NULL, get_rvalue(node->ast_return.return_expr,NULL), NULL, NULL);
+}
+
+// Generates IR for function call
+void gen_fnc_call_IR(astnode *node) {
+    // Emit quad for argument number
+    emit_quad(ARGBEGIN_OC, NULL, node->ast_fnc_call.num_arguments, NULL, NULL);
+
+    // Creates number astnode to pass to quad
+    astnode *arg_number = create_num_one_node();
+    // Emits quads for arguments
+    astnode_list_entry *curr_arg = node->ast_fnc_call.expr_list_head->ast_node_list_head;
+    for(int i = 1; i <= node->ast_fnc_call.num_arguments; i++) { // Should this be right to left?
+        arg_number->ast_number.number.i_value = i;
+        emit_quad(ARG, NULL, arg_number, curr_arg->node, NULL);
+        curr_arg = curr_arg->next;
+    }
+
+    // Emits quad for function call
+    emit_quad(CALL_OC, NULL, node->ast_fnc_call.function_name, NULL, NULL);
 }
