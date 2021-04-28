@@ -50,6 +50,14 @@ void set_block(basic_block *block) {
     }
 }
 
+// Links given block(s) with current basic block
+// Branch is set to the true branch, while next is set to the false branch
+void link_blocks(astnode *true_branch, astnode *false_branch, int op_code) {
+    curr_block->next = false_branch;
+    curr_block->branch = true_branch;
+    curr_block->branch_condition = op_code;
+}
+
 // Generates the quads for a function and stores blocks in linked list
 void generate_function_quads() {
 
@@ -74,6 +82,43 @@ void generate_quads(struct astnode *node) {
     }
 
     fprintf(stderr, "No quads to generate.\n");
+}
+
+// Creates a new quad and appends it to linked list of quads
+void *emit_quad(int op_code, int op_size, struct astnode *src1, struct astnode *src2, struct astnode *dest) {
+    // Creates new quad
+    quad *new_quad;
+
+    // Checks for errors
+    if((new_quad = malloc(sizeof(quad))) == NULL) {
+        fprintf(stderr, "ERROR: Unable to allocate memory for quad.\n");
+        exit(-1);
+    }
+
+    new_quad->op_code = op_code;
+    new_quad->op_size = op_size;
+    new_quad->src1 = src1;
+    new_quad->src2 = src2;
+    new_quad->dest = dest;
+
+    // Creates new linked list entry
+    quad_list_entry *quad_entry;
+
+    // Checks for errors
+    if((quad_entry = malloc(sizeof(quad_list_entry))) == NULL) {
+        fprintf(stderr, "ERROR: Unable to allocate memory for quad list entry.\n");
+        exit(-1);
+    }
+
+    quad_entry->quad = new_quad;
+
+    // Appends to linked list
+    if(curr_quad == NULL) {
+        curr_block->quad_list = quad_entry;
+    } else {
+        curr_quad->next = quad_entry;
+    }
+    curr_quad = quad_entry;
 }
 
 // Gets r value of expression
@@ -204,43 +249,6 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
     }
 
     return NULL;
-}
-
-// Creates a new quad and appends it to linked list of quads
-void *emit_quad(int op_code, int op_size, struct astnode *src1, struct astnode *src2, struct astnode *dest) {
-    // Creates new quad
-    quad *new_quad;
-
-    // Checks for errors
-    if((new_quad = malloc(sizeof(quad))) == NULL) {
-        fprintf(stderr, "ERROR: Unable to allocate memory for quad.\n");
-        exit(-1);
-    }
-
-    new_quad->op_code = op_code;
-    new_quad->op_size = op_size;
-    new_quad->src1 = src1;
-    new_quad->src2 = src2;
-    new_quad->dest = dest;
-
-    // Creates new linked list entry
-    quad_list_entry *quad_entry;
-
-    // Checks for errors
-    if((quad_entry = malloc(sizeof(quad_list_entry))) == NULL) {
-        fprintf(stderr, "ERROR: Unable to allocate memory for quad list entry.\n");
-        exit(-1);
-    }
-
-    quad_entry->quad = new_quad;
-
-    // Appends to linked list
-    if(curr_quad == NULL) {
-        curr_block->quad_list = quad_entry;
-    } else {
-        curr_quad->next = quad_entry;
-    }
-    curr_quad = quad_entry;
 }
 
 // Creates a temporary node
@@ -381,11 +389,7 @@ void gen_conditional_expr_IR(astnode *cond_expr, astnode *true_branch, astnode *
     link_blocks(true_branch, false_branch, NEQ_OC);
 }
 
-// Links given block(s) with current basic block
-// Branch is set to the true branch, while next is set to the false branch
-void link_blocks(astnode *true_branch, astnode *false_branch, int op_code) {
-    curr_block->next = false_branch;
-    curr_block->branch = true_branch;
-    curr_block->branch_condition = op_code;
+// Generates IR for while loop
+void gen_while_loop_IR(astnode *node) {
+    
 }
-

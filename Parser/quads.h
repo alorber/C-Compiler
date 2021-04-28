@@ -82,20 +82,24 @@ struct basic_block *create_basic_block(char *block_label);
 // Sets block as current block and updates global variable
 void set_block(basic_block *block);
 
+// Links given block(s) with current basic block
+// Branch is set to the true branch, while next is set to the false branch
+void link_blocks(astnode *true_branch, astnode *false_branch, int op_code);
+
 // Generates the quads for a function and stores blocks in linked list
 void generate_function_quads();
 
 // Given AST node, recursively generates quads
 void generate_quads(struct astnode *node);
 
+// Creates a new quad and appends it to linked list of quads
+void *emit_quad(int op_code, int op_size, struct astnode *src1, struct astnode *src2, struct astnode *dest);
+
 // Gets r value of expression
 struct astnode *get_rvalue(struct astnode *node, struct astnode *target);
 
 // Gets l value of expression
 struct astnode *get_lvalue(struct astnode *node, int *mode);
-
-// Creates a new quad and appends it to linked list of quads
-void *emit_quad(int op_code, int op_size, struct astnode *src1, struct astnode *src2, struct astnode *dest);
 
 // Creates a temporary node
 struct astnode *create_temp_node();
@@ -109,8 +113,6 @@ void gen_if_stmt_IR(astnode *node);
 // Generates IR for conditional expression
 void gen_conditional_expr_IR(astnode *cond_expr, astnode *true_branch, astnode *false_branch);
 
-// Links given block(s) with current basic block
-// Branch is set to the true branch, while next is set to the false branch
-void link_blocks(astnode *true_branch, astnode *false_branch, int op_code);
-
+// Generates IR for while loop
+void gen_while_loop_IR(astnode *node);
 #endif // QUADS_H
