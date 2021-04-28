@@ -263,6 +263,23 @@ void gen_assignment_IR(astnode *node) {
 
 // Generates IR for if statements
 void gen_if_stmt_IR(astnode *node) {
+    // Checks if logical and / or
+    if(node->ast_if_else.if_condition->node_type == BINARY_TYPE) {
+        // Splits into separate if statements
+        if(node->ast_if_else.if_condition->ast_binary_op.op == LOGAND) {
+            astnode *expr2 = create_if_else_node(node->ast_if_else.if_condition->ast_binary_op.right_expr, node->ast_if_else.if_body, node->ast_if_else.else_body);
+            astnode *expr1 = create_if_else_node(node->ast_if_else.if_condition->ast_binary_op.left_expr, expr2, node->ast_if_else.else_body);
+            gen_if_stmt_IR(expr1);
+            return;
+        }
+        if(node->ast_if_else.if_condition->ast_binary_op.op == LOGOR) {
+            astnode *expr2 = create_if_else_node(node->ast_if_else.if_condition->ast_binary_op.right_expr, node->ast_if_else.if_body, node->ast_if_else.else_body);
+            astnode *expr1 = create_if_else_node(node->ast_if_else.if_condition->ast_binary_op.left_expr, node->ast_if_else.if_body, expr2);
+            gen_if_stmt_IR(expr1);
+            return;
+        }
+    }
+
     // Creates basic blocks for branches
     astnode *true_block = create_basic_block(NULL);
     astnode *false_block = create_basic_block(NULL);
@@ -302,7 +319,7 @@ void gen_conditional_expr_IR(astnode *cond_expr, astnode *true_branch, astnode *
     // Checks if comparative expression
     if(cond_expr->node_type == BINARY_TYPE) {
         int op_code = -1;
-        switch(node->ast_binary_op.op) {
+        switch(cond_expr->ast_binary_op.op) {
             case EQEQ:
                 op_code = EQEQ_OC;
                 break;
