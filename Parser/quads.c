@@ -19,6 +19,7 @@ struct quad_list_entry *curr_quad;
 
 // Creates a new basic block
 struct basic_block *create_basic_block(char *block_label) {
+    static int num_blocks = 0; // Number of nameless blocks (used for naming)
     basic_block *b_block;
     
     //  Checks for errors
@@ -27,8 +28,14 @@ struct basic_block *create_basic_block(char *block_label) {
         exit(-1);
     }
 
-    // TODO: Default name if none is given
-    b_block->block_label = block_label;
+    // Checks if name needed
+    if(block_label == NULL) {
+        char new_name[10];
+        sprintf(new_name, "Basic_Block_%d", num_blocks);
+        b_block->block_label = new_name;
+    } else {
+        b_block->block_label = block_label;
+    }    
 
     b_block->quad_list = NULL;
     b_block->next = NULL;
