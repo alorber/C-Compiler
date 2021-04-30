@@ -741,8 +741,8 @@ astnode *create_temp_node(int temp_num) {
     temp_node->ast_temp_node.temp_value = NULL;
     
     // Generates a name for the temp node
-    char name[25];
-    sprintf(name, "Temp_Block_%d", temp_num);
+    char *name = calloc(256, sizeof(char));
+    sprintf(name, "Temp_Node_%d", temp_num);
     temp_node->ast_temp_node.name = name;
 
     return temp_node;

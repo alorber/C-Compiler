@@ -60,8 +60,8 @@ struct basic_block *create_basic_block(char *block_label) {
 
     // Checks if name needed
     if(block_label == NULL) {
-        char new_name[25];
-        sprintf(new_name, "Basic_Block_%d", num_blocks);
+        char *new_name = calloc(256, sizeof(char));
+        sprintf(new_name, "Basic_Block_%d", num_blocks++);
         b_block->block_label = new_name;
     } else {
         b_block->block_label = block_label;
@@ -646,7 +646,7 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
 struct astnode *get_temp_node() {
     static int num_temps = 0; // Number of temp nodes created - Used for naming
 
-    return create_temp_node(num_temps);
+    return create_temp_node(num_temps++);
 }
 
 // Determines size of value
@@ -1142,13 +1142,14 @@ void print_block(basic_block *block) {
     // Checks for branch
     if(block->branch) {
         // Prints comparison opcode
-        fprintf(stdout, "%s ", op_code_to_string(block->branch_condition));
+        fprintf(stdout, "\n%s ", op_code_to_string(block->branch_condition));
         
         // Prints true branch
         print_block(block->branch);
     }
     // Prints false / default branch
     if(block->next) {
+        fprintf(stdout, "\n");
         print_block(block->next);
     }
 }
@@ -1305,6 +1306,7 @@ char *node_name_to_string(astnode *node) {
                         break;
                 }
             }
+            break;
 
         case CHARLIT_TYPE:
             strcpy(node_name, node->ast_charlit.charlit);
