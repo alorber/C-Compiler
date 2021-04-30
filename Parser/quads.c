@@ -60,7 +60,7 @@ struct basic_block *create_basic_block(char *block_label) {
 
     // Checks if name needed
     if(block_label == NULL) {
-        char new_name[10];
+        char new_name[25];
         sprintf(new_name, "Basic_Block_%d", num_blocks);
         b_block->block_label = new_name;
     } else {
@@ -615,7 +615,9 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
 
 // Creates a temporary node
 struct astnode *create_temp_node() {
+    static int num_temps = 0; // Number of temp nodes created - Used for naming
 
+    return create_temp_node(num_temps);
 }
 
 // Determines size of value

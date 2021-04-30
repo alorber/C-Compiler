@@ -44,7 +44,8 @@ enum nodetype {
     POINTER_TYPE,
     ARRAY_TYPE,
     FUNCTION_TYPE,
-    STRUCT_UNION_TYPE,  // 25
+    TEMP_TYPE, // 25
+    STRUCT_UNION_TYPE,
     SYM_ENTRY_TYPE
 };
 
@@ -261,6 +262,15 @@ typedef struct astnode_function {
     struct astnode *arg_types;     // Argument types (ast node list)
 } astnode_function;
 
+// IR Gen Nodes
+// ------------
+
+// Temp node used for IR generation
+typedef struct astnode_temp_node {
+    char *name;
+    astnode *temp_value; // Can store whatever value needs to be stored
+} astnode_temp_node;
+
 // Symbol Table Nodes
 // ------------------
 
@@ -388,6 +398,9 @@ typedef struct astnode {
         astnode_array ast_array;
         astnode_function ast_function;
 
+        // IR Gen Nodes
+        astnode_temp_node ast_temp_node;
+
         // Symbol Table Node
         astnode_sym_table_entry ast_sym_entry;
     };
@@ -468,6 +481,13 @@ astnode *create_function_node(int num_args, astnode *return_type, astnode *arg_t
 
 // Adds node to end of array / pointer chain
 astnode *add_to_arr_ptr_chain(astnode*parent_node, int type_to_add);
+
+// IR Gen Nodes
+// ------------
+
+// Creates a temp node to be used for IR generation
+// temp_num is the number temp nodes, to be used for name creation
+astnode *create_temp_node(int temp_num);
 
 // Symbol Table Nodes
 // ------------------

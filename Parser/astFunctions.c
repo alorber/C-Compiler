@@ -730,6 +730,24 @@ astnode *add_to_arr_ptr_chain(astnode *parent_node, int type_to_add) {
     return parent_node;
 }
 
+// IR Gen Nodes
+// ------------
+
+// Creates a temp node to be used for IR generation
+// temp_num is the number temp nodes, to be used for name creation
+astnode *create_temp_node(int temp_num) {
+    astnode *temp_node = allocate_node_mem();
+    temp_node->node_type = TEMP_TYPE;
+    temp_node->ast_temp_node.temp_value = NULL;
+    
+    // Generates a name for the temp node
+    char name[25];
+    sprintf(name, "Temp_Block_%d", temp_num);
+    temp_node->ast_temp_node.name = name;
+
+    return temp_node;
+}
+
 // Symbol Table Nodes
 // ------------------
 
