@@ -232,7 +232,9 @@ decl_or_fnc_def_list: decl_or_fnc_def                       {fprintf(stderr,"\n\
 
 
 decl_or_fnc_def: declaration    {print_ast($1,0,0);}
-               | fnc_def        {generate_function_quads($1);
+               | fnc_def        {fprintf(stderr, "Generating Quads\n");
+                                 generate_function_quads($1);
+                                 fprintf(stderr, "Printing Quads...\n");
                                  print_function_quads();}
                ;
 
@@ -521,8 +523,9 @@ jump_stmt: GOTO IDENT ';'     {$$ = create_goto_stmt_node($2);}
 /* ----------- */
 
 int main() {
-    yydebug = 0;   // Set value to 1 to enable debugging
+    yydebug = 1;   // Set value to 1 to enable debugging
     init_scope_stack();  // Creates Scope Stack
+    init_quad_gen();
     yyparse();
     return 0;
 }
