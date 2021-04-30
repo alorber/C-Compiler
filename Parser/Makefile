@@ -2,7 +2,7 @@
 # Compilers - Parser Make File
 
 parser: parser.tab.o quads.o symbol_table.o astFunctions.o lexer.yy.o lexerFunctions.o
-		gcc -o parser parser.tab.o symbol_table.o astFunctions.o ../Lexer/lexer.yy.o ../Lexer/lexerFunctions.o
+		gcc -o parser parser.tab.o quads.o symbol_table.o astFunctions.o ../Lexer/lexer.yy.o ../Lexer/lexerFunctions.o
 
 parser.tab.o: parser.y
 		# For debugging:
