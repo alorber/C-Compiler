@@ -254,9 +254,13 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             // Array Varible
             if(node->ast_sym_entry.sym_type == VAR_TYPE 
             && node->ast_sym_entry.sym_node->node_type == ARRAY_TYPE) {
-                astnode *temp = create_temp_node();
-                emit_quad(LEA_OC, NULL, node, NULL, temp); // Should src1 be the array node?
-                return temp;
+                // Checks if target
+                if(target == NULL) {
+                    target = create_temp_node();
+                }
+
+                emit_quad(LEA_OC, NULL, node, NULL, target); // Should src1 be the array node?
+                return target;
             }
             break; // Will it ever get here?
 
@@ -307,7 +311,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                     break;
             }
 
-            // Check if binary expression
+            // Checks if binary expression
             if(op_code > 0) {
                 // Checks if pointer arithmetic is needed
                 if(op_code == ADD_OC || op_code == SUB_OC) {
@@ -410,8 +414,67 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                 return target;
             }
 
-            // Else, comparative expression & assignment
+            // Checks comparison operators
+            switch(cond_expr->ast_binary_op.op) {
+                case EQEQ:
+                    op_code = EQEQ_OC;
+                    break;
 
+                case NOTEQ:
+                    op_code = NEQ_OC;
+                    break;
+                
+                case '<':
+                    op_code = LT_OC;
+                    break;
+                
+                case '>':
+                    op_code = GT_OC;
+                    break;
+
+                case LTEQ:
+                    op_code = LTEQ_OC;
+                    break;
+
+                case GTEQ:
+                    op_code = GTEQ_OC;
+                    break; 
+            }
+
+            // Checks if comparison expression
+            if(op_code > 0) {
+                // Creates blocks
+                basic_block *true_block = create_basic_block(NULL);
+                basic_block *false_block = create_basic_block(NULL);
+                basic_block *next_block = create_basic_block(NULL);
+
+                // Links blocks to current block
+                gen_conditional_expr_IR(node, true_block, false_block);
+
+                // Checks if target
+                if(target == NULL) {
+                    target = create_temp_node();
+                }
+
+                // Creates quads for true branch (return 1)
+                set_block(true_block);
+                astnode *num_one = create_num_one_node();
+                emit_quad(MOV_OC, NULL, num_one, NULL, target);
+                link_blocks(NULL, next_block, NONE_OC);
+
+                // Creates quads for false brach (returns 0)
+                set_block(false_block);
+                astnode *num_zero = create_num_one_node();
+                num_zero->ast_number.number.i_value = 0;
+                emit_quad(MOV_OC, NULL, num_zero, NULL, target);
+                link_blocks(NULL, next_block, NONE_OC);
+
+                set_block(next_block);
+
+                return target;
+            }
+
+            // Do I check for Assignment expressions?
             return NULL;
 
         // Unary Operations
@@ -785,7 +848,7 @@ void gen_if_stmt_IR(astnode *node) {
         set_block(false_block);
         generate_quads(node->ast_if_else.else_body);
         
-        // Attaches true block to next block
+        // Attaches false block to next block
         link_blocks(NULL,next_block,NONE_OC);
     }
 
@@ -825,9 +888,8 @@ void gen_conditional_expr_IR(astnode *cond_expr, basic_block *true_branch, basic
 
         // Confirms comparative expression
         if(op_code > 0) {
-            // TODO: Gets rvalue of sub expressions
-            astnode *left_expr = cond_expr->ast_binary_op.left_expr;
-            astnode *right_expr = cond_expr->ast_binary_op.right_expr;
+            astnode *left_expr = get_rvalue(cond_expr->ast_binary_op.left_expr, NULL);
+            astnode *right_expr = get_rvalue(cond_expr->ast_binary_op.right_expr, NULL);
 
             // Compare quad
             emit_quad(CMP_OC, NULL, left_expr, right_expr, NULL);
