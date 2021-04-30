@@ -8,7 +8,7 @@
 // Global Variables
 // ----------------
 
-struct basic_block_list_entry *block_list_head;
+struct basic_block_list *block_list;
 struct basic_block *curr_block;
 struct basic_block *break_block;
 struct basic_block *continue_block;
@@ -16,6 +16,36 @@ struct quad_list_entry *curr_quad;
 
 // Functions
 // ----------
+
+// Initializes global variables
+void init_quad_gen() {
+    //  Checks for errors
+    if((block_list = malloc(sizeof(block_list))) == NULL) {
+        fprintf(stderr, "ERROR: Unable to allocate memory for basic block list.\n");
+        exit(-1);
+    }
+
+    curr_block = NULL;
+    break_block = NULL;
+    continue_block = NULL;
+    curr_quad = NULL;
+}
+
+// Creates basic block list entry
+struct basic_block_list_entry *create_block_list_entry(basic_block *block) {
+    basic_block_list_entry *block_list_entry;
+
+    //  Checks for errors
+    if((basic_block_list_entry = malloc(sizeof(basic_block_list_entry))) == NULL) {
+        fprintf(stderr, "ERROR: Unable to allocate memory for basic block list entry.\n");
+        exit(-1);
+    }
+
+    block_list_entry->bb = block;
+    block_list_entry->next = NULL;
+
+    return block_list_entry;
+}
 
 // Creates a new basic block
 struct basic_block *create_basic_block(char *block_label) {
@@ -66,8 +96,27 @@ void link_blocks(basic_block *true_branch, basic_block *false_branch, int op_cod
 }
 
 // Generates the quads for a function and stores blocks in linked list
-void generate_function_quads() {
+void generate_function_quads(astnode *node) {
+    // Makes sure that node is a function
+    if(node->node_type != SYM_ENTRY_TYPE || node->ast_sym_entry.sym_type != FNC_NAME_TYPE) {
+        fprintf(stderr, "ERROR: Can only print quads of function.\n");
+        return NULL; // Should this kill the program?
+    }
 
+    // Sets current basic block
+    set_block(create_basic_block(node->ast_sym_entry.symbol));
+
+    // Adds function block to block list
+    basic_block_list_entry *block_entry = create_block_list_entry(curr_block);
+    if(block_list->head == NULL) {
+        block_list->head = block_entry;
+    } else {
+        block_list->tail->next = block_entry;
+    }
+    block_list->tail = block_entry;
+
+    // Generates quads for functions
+    generate_quads(node->ast_sym_entry.sym_node);
 }
 
 // Given AST node, recursively generates quads

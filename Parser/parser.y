@@ -11,6 +11,7 @@
 #include "astFunctions.h"
 #include "symbol_table.h"
 #include "../Lexer/lexerFunctions.h"
+#include "quads.h"
 
 /* Remove comments to enable debugging */
 /* #define YYDEBUG	1 */
@@ -231,7 +232,7 @@ decl_or_fnc_def_list: decl_or_fnc_def                       {fprintf(stderr,"\n\
 
 
 decl_or_fnc_def: declaration    {print_ast($1,0,0);}
-               | fnc_def        {}
+               | fnc_def        {generate_function_quads($1);}
                ;
 
 declaration: decl_specifier ';'                   {$$ = $1;}

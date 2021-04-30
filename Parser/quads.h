@@ -25,6 +25,11 @@ typedef struct basic_block_list_entry {
     basic_block_list_entry *next;
 } basic_block_list_entry;
 
+typedef struct basic_block_list {
+    basic_block_list_entry *head;
+    basic_block_list_entry *tail;
+}
+
 // Entry in linked list of quads (used in basic block)
 typedef struct quad_list_entry {
     struct quad *quad;
@@ -85,6 +90,12 @@ enum lvalue_mode {
 // Functions
 // ---------
 
+// Initializes global variables
+void init_quad_gen();
+
+// Creates basic block list entry
+struct basic_block_list_entry *create_block_list_entry(basic_block *block);
+
 // Creates a new basic block
 struct basic_block *create_basic_block(char *block_label);
 
@@ -96,7 +107,7 @@ void set_block(basic_block *block);
 void link_blocks(basic_block *true_branch, basic_block *false_branch, int op_code);
 
 // Generates the quads for a function and stores blocks in linked list
-void generate_function_quads();
+void generate_function_quads(astnode *node);
 
 // Given AST node, recursively generates quads
 void generate_quads(struct astnode *node);
