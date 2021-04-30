@@ -118,6 +118,11 @@ struct astnode *create_temp_node();
 // Returns astnode with constant values
 astnode *get_size_of(astnode *node);
 
+// Compares two pointers and confirms that they are of equal type
+// Does this by comparing size (I think that works)
+// Will either return NULL (not equal) or the size of the pointers (needed for ptr - ptr)
+astnode *compare_pointers(astnode *left_pointer, astnode *right_pointer);
+
 // Generates IR for assignments
 void gen_assignment_IR(astnode *node);
 

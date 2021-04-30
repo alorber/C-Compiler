@@ -250,7 +250,95 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             if(op_code > 0) {
                 // Checks if pointer arithmetic is needed
                 if(op_code == ADD_OC || op_code == SUB_OC) {
+                    int left_type, right_type; // Stores type of operands (Uses enum for ast types)
 
+                    // Checks type of left operand
+                    if(node->ast_binary_op.left_expr->node_type == SYM_ENTRY_TYPE) && 
+                    (node->ast_binary_op.left_expr->ast_sym_entry.sym_node->node_type == POINTER_TYPE ||
+                    node->ast_binary_op.left_expr->ast_sym_entry.sym_node->node_type == ARRAY_TYPE)) {
+                        left_type = POINTER_TYPE;
+                    }
+                    else if(node->ast_binary_op.left_expr->node_type == NUMBER_TYPE ||
+                    (node->ast_binary_op.left_expr->node_type == SYM_ENTRY_TYPE &&
+                    node->ast_binary_op.left_expr->ast_sym_entry.sym_node->node_type == SCALAR_TYPE)) {
+                        left_type = NUMBER_TYPE;
+                    }
+                    else {
+                        fprintf(stderr, "ERROR: Unknown type in arithmetic operation.\n");
+                    }
+
+                    // Checks type of right operand
+                    if(node->ast_binary_op.right_expr->node_type == SYM_ENTRY_TYPE && 
+                    (node->ast_binary_op.right_expr->ast_sym_entry.sym_node->node_type == POINTER_TYPE ||
+                    node->ast_binary_op.right_expr->ast_sym_entry.sym_node->node_type == ARRAY_TYPE)) {
+                        right_type = POINTER_TYPE;
+                    }
+                    else if(node->ast_binary_op.right_expr->node_type == NUMBER_TYPE ||
+                    (node->ast_binary_op.right_expr->node_type == SYM_ENTRY_TYPE &&
+                    node->ast_binary_op.right_expr->ast_sym_entry.sym_node->node_type == SCALAR_TYPE)) {
+                        right_type = NUMBER_TYPE;
+                    }
+                    else {
+                        fprintf(stderr, "ERROR: Unknown type in arithmetic operation.\n");
+                    }
+
+                    // 3 pairs to check:
+                    // (1) pointer / Array +- number
+                    if(left_type == POINTER_TYPE && right_type == NUMBER_TYPE) {
+                        // Determines size of pointee
+                        astnode *pointee_size;
+                        if(node->ast_binary_op.left_expr->ast_sym_entry.sym_node->node_type == POINTER_TYPE) {
+                            pointee_size = get_size_of(node->ast_binary_op.left_expr->ast_sym_entry.sym_node->ast_pointer.pointer_type);
+                        } else {
+                            pointee_size = get_size_of(node->ast_binary_op.left_expr->ast_sym_entry.sym_node->ast_array.arr_type);
+                        }
+
+                        // Evaluates amount to add
+                        astnode *temp_node = create_temp_node(NULL);
+                        emit_quad(MUL_OC, NULL, node->ast_binary_op.right_expr, pointee_size, temp_node);
+                        right = temp_node;
+                    }
+                    // (2) number +- pointer / Array
+                    else if(left_type == NUMBER_TYPE && right_type == POINTER_TYPE) {
+                        // Determines size of pointee
+                        astnode *pointee_size;
+                        if(node->ast_binary_op.right_expr->ast_sym_entry.sym_node->node_type == POINTER_TYPE) {
+                            pointee_size = get_size_of(node->ast_binary_op.right_expr->ast_sym_entry.sym_node->ast_pointer.pointer_type);
+                        } else {
+                            pointee_size = get_size_of(node->ast_binary_op.right_expr->ast_sym_entry.sym_node->ast_array.arr_type);
+                        }
+
+                        // Evaluates amount to add
+                        astnode *temp_node = create_temp_node(NULL);
+                        emit_quad(MUL_OC, NULL, node->ast_binary_op.left_expr, pointee_size, temp_node);
+                        left = temp_node;
+                    }
+                    // (3) pointer / Array +- pointer / Array 
+                    else if(left_type == POINTER_TYPE && right_type ==  POINTER_TYPE) {
+                        if(op_code == ADD_OC) {
+                            fprintf(stderr, "ERROR: Addition operation not allowed on two pointers.\n");
+                            return NULL; // Should this kill the program? 
+                        }
+
+                        // How do I check they point to the same type? Can I just compare their sizes?
+                        astnode *pointer_size = compare_pointers(node->ast_binary_op.left_expr, node->ast_binary_op.right_expr);
+
+                        // If not equal pointers, error
+                        if(pointer_size == NULL) {
+                            fprintf(stderr, "ERROR: Attempting to subtract incompatible pointer types.\n");
+                            return NULL; // Should this kill the program?
+                        }
+
+                        // Two step process
+                        // 1) Subtraction
+                        astnode *temp_node = create_temp_node(NULL);
+                        emit_quad(SUB_OC, NULL, left, right, temp_node);
+                        
+                        // 2) Division
+                        op_code = DIV_OC;
+                        left = temp_node;
+                        right = pointer_size;
+                    }
                 }
 
                 // Checks if target
@@ -289,7 +377,15 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             }
             // Sizeof operator
             if(node->ast_unary_op.op == SIZEOF) {
-                return get_size_of(node->ast_unary_op.expr);
+                // Checks if target
+                if(target == NULL) {
+                    target = create_temp_node();
+                }
+
+                // Moves size to target
+                astnode *size = get_size_of(node->ast_unary_op.expr);
+                emit_quad(MOV_OC, NULL, size, NULL, target);
+                return target;
             }
             // Other Unary Operators
             int op_code = -1;
@@ -470,6 +566,36 @@ astnode *get_size_of(astnode *node) {
 
     // Returns new constant astnode
     return create_number_node(size_value);
+}
+
+// Compares two pointers and confirms that they are of equal type
+// Does this by comparing size (I think that works)
+// Will either return NULL (not equal) or the size of the pointers (needed for ptr - ptr)
+astnode *compare_pointers(astnode *left_pointer, astnode *right_pointer) {
+    if(left_pointer->node_type != right_pointer->node_type) {
+        return NULL;
+    }
+
+    // If pointer, move in a level
+    if(left_pointer->node_type == POINTER_TYPE) {
+        return compare_pointers(left_pointer->ast_pointer.pointer_type, right_pointer->ast_pointer.pointer_type);
+    }
+    // If array, move in a level
+    if(left_pointer->node_type == ARRAY_TYPE) {
+        return compare_pointers(left_pointer->ast_array.arr_type, right_pointer->ast_array.arr_type);
+    }
+    // If constatnt, compare sizes
+    if((left_pointer->node_type == SYM_ENTRY_TYPE && left_pointer->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) 
+    || left_pointer->node_type == NUMBER_TYPE) {
+        astnode *pointer_size = get_size_of(left_pointer);
+        
+        // Compares sizes
+        if(pointer_size == get_size_of(right_pointer)) {
+            return pointer_size;
+        } else {
+            return NULL;
+        }
+    }
 }
 
 // Generates IR for assignments
