@@ -36,7 +36,7 @@ struct basic_block_list_entry *create_block_list_entry(basic_block *block) {
     basic_block_list_entry *block_list_entry;
 
     //  Checks for errors
-    if((basic_block_list_entry = malloc(sizeof(basic_block_list_entry))) == NULL) {
+    if((block_list_entry = malloc(sizeof(basic_block_list_entry))) == NULL) {
         fprintf(stderr, "ERROR: Unable to allocate memory for basic block list entry.\n");
         exit(-1);
     }
@@ -53,7 +53,7 @@ struct basic_block *create_basic_block(char *block_label) {
     basic_block *b_block;
     
     //  Checks for errors
-    if((b_block = malloc(sizeof(b_block))) == NULL) {
+    if((b_block = malloc(sizeof(basic_block))) == NULL) {
         fprintf(stderr, "ERROR: Unable to allocate memory for basic block.\n");
         exit(-1);
     }
@@ -124,7 +124,11 @@ void generate_quads(astnode *node) {
 
     // Checks node type
     switch(node->node_type) {
-        // TODO: ++ & --
+        // PLUSPLUS & MINUSMINUS
+        case UNARY_TYPE:
+            if(node->ast_unary_op.op == PLUSPLUS || node->ast_unary_op.op == MINUSMINUS) {
+
+            }
 
         // Assignment
         case BINARY_TYPE:
@@ -429,7 +433,21 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             }
             // Increment & Decrement
             if(node->ast_unary_op.op == PLUSPLUS || node->ast_unary_op.op == MINUSMINUS) {
+                // Gets rvalue of expr
+                astnode *expr_rvalue = get_rvalue(node->ast_unary_op.expr, NULL);
 
+                // Checks if target
+                if(target == NULL) {
+                    target = create_temp_node();
+                }
+
+                // Moves expr to target
+                emit_quad(MOV_OC, NULL, expr_rvalue, NULL, target);
+
+                // Updates variable with incr / decr
+                gen_incr_decr_IR(node);
+
+                return target;
             }
             // Sizeof operator
             if(node->ast_unary_op.op == SIZEOF) {
@@ -652,6 +670,23 @@ astnode *compare_pointers(astnode *left_pointer, astnode *right_pointer) {
             return NULL;
         }
     }
+}
+
+// Generates IR for ++ & --
+void gen_incr_decr_IR(astnode *node) {
+    // Turns a++ -> a = a + 1 & a-- -> a = a - 1
+    astnode *num_one = create_num_one_node();
+
+    // Creates arithmetic operator node
+    astnode *new_binary_node;
+    if(node->ast_unary_op.op == PLUSPLUS) {
+        new_binary_node = create_binary_node('+', node->ast_unary_op.expr, num_one);
+    } else {
+        new_binary_node = create_binary_node('-', node->ast_unary_op.expr, num_one);
+    }
+
+    // Creates assignment node & generates IR
+    gen_assignment_IR(create_binary_node('=', node->ast_unary_op.expr, new_binary_node));
 }
 
 // Generates IR for assignments

@@ -134,6 +134,9 @@ astnode *get_size_of(astnode *node);
 // Will either return NULL (not equal) or the size of the pointers (needed for ptr - ptr)
 astnode *compare_pointers(astnode *left_pointer, astnode *right_pointer);
 
+// Generates IR for ++ & --
+void gen_incr_decr_IR(astnode *node);
+
 // Generates IR for assignments
 void gen_assignment_IR(astnode *node);
 
