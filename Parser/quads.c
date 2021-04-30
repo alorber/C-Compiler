@@ -127,7 +127,8 @@ void generate_quads(astnode *node) {
         // PLUSPLUS & MINUSMINUS
         case UNARY_TYPE:
             if(node->ast_unary_op.op == PLUSPLUS || node->ast_unary_op.op == MINUSMINUS) {
-
+                gen_incr_decr_IR(node);
+                return;
             }
 
         // Assignment
@@ -429,7 +430,43 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             }
             // Address of operator
             if(node->ast_unary_op.op == '&') {
-                
+                // Checks expr type
+                switch(node->ast_unary_op.expr->node_type) {
+                    // Sym table entry
+                    case SYM_ENTRY_TYPE:
+                        // Checks if target
+                        if(target == NULL) {
+                            target = create_temp_node();
+                        }
+
+                        emit_quad(LEA_OC, NULL, node->ast_unary_op.expr, NULL, target);
+                        break;
+
+                    // Pointer dereference
+                    case UNARY_TYPE:
+                        if(node->ast_unary_op.op == '*') {
+                            // Checks if target
+                            if(target == NULL) {
+                                target = create_temp_node();
+                            }
+
+                            // Operators cancel each other out
+                            get_rvalue(node->ast_unary_op.expr->ast_unary_op.expr, target);
+                            break;
+                        }
+                        // No break on purpose
+
+                    default:
+                        astnode *expr_rvalue = get_rvalue(node->ast_unary_op.expr, NULL);
+
+                        // Checks if target
+                        if(target == NULL) {
+                            target = create_temp_node();
+                        }
+
+                        emit_quad(LEA_OC, NULL, expr_rvalue, NULL, target);
+                }
+                return target;
             }
             // Increment & Decrement
             if(node->ast_unary_op.op == PLUSPLUS || node->ast_unary_op.op == MINUSMINUS) {
