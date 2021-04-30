@@ -113,6 +113,11 @@ struct astnode *get_lvalue(struct astnode *node, int *mode);
 // Creates a temporary node
 struct astnode *create_temp_node();
 
+// Determines size of value
+// No variable lengths, so will return constant value
+// Returns astnode with constant values
+astnode *get_size_of(astnode *node);
+
 // Generates IR for assignments
 void gen_assignment_IR(astnode *node);
 

@@ -186,15 +186,15 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
         case SYM_ENTRY_TYPE:
             // Scalar Variable
             if(node->ast_sym_entry.sym_type == VAR_TYPE 
-            && node->ast_sym_entry.ident_var.var_type->node_type == SCALAR_TYPE) {
-                return node;
+            && node->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) {
+                return node; // Should I return the scalar node or sym entry node?
             }
 
             // Array Varible
             if(node->ast_sym_entry.sym_type == VAR_TYPE 
-            && node->ast_sym_entry.ident_var.var_type->node_type == ARRAY_TYPE) {
+            && node->ast_sym_entry.sym_node->node_type == ARRAY_TYPE) {
                 astnode *temp = create_temp_node();
-                emit_quad(LEA_OC, NULL, node, NULL, temp);
+                emit_quad(LEA_OC, NULL, node, NULL, temp); // Should src1 be the array node?
                 return temp;
             }
             break; // Will it ever get here?
@@ -248,7 +248,10 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
             // Check if binary expression
             if(op_code > 0) {
-                // TODO: Check if pointer arithmetic is needed
+                // Checks if pointer arithmetic is needed
+                if(op_code == ADD_OC || op_code == SUB_OC) {
+
+                }
 
                 // Checks if target
                 if(target == NULL) {
@@ -262,6 +265,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
             return NULL;
 
+        // Unary Operations
         case UNARY_TYPE:
             // Pointer Deref
             if(node->ast_unary_op.op == '*') {
@@ -283,6 +287,10 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             if(node->ast_unary_op.op == PLUSPLUS || node->ast_unary_op.op == MINUSMINUS) {
 
             }
+            // Sizeof operator
+            if(node->ast_unary_op.op == SIZEOF) {
+                return get_size_of(node->ast_unary_op.expr);
+            }
             // Other Unary Operators
             int op_code = -1;
             switch(node->ast_unary_op.op) {
@@ -297,7 +305,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                 target = create_temp_node();
             }
 
-            // Checks if expression was found (Should always pass)
+            // Checks if expression was found
             if(op > 0) {
                 emit_quad(op_code, NULL, get_rvalue(node->ast_unary_op.expr, NULL), NULL, target);
                 return target;
@@ -311,9 +319,9 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
         // Scalar Variable
         case SYM_ENTRY_TYPE:
             if(node->ast_sym_entry.sym_type == VAR_TYPE
-                && node->ast_sym_entry.ident_var.var_type->node_type == SCALAR_TYPE) {
+                && node->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) {
                 *mode = DIRECT_MODE;
-                return node;
+                return node; // Should this return the scalar node instead of the sym entry?
             }
             break; // Will it ever get here?
 
@@ -338,6 +346,130 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
 // Creates a temporary node
 struct astnode *create_temp_node() {
 
+}
+
+// Determines size of value
+// No variable lengths, so will return constant value
+// Returns astnode with constant value
+astnode *get_size_of(astnode *node) {
+    num_type size_value;
+    size_value.is_signed = SIGNED_TYPE;
+    size_value.size_specifier = INT_TYPE;
+
+    enum type_sizes {
+        CHAR_SIZE = 1,
+        SHORT_SIZE = 2,
+        INT_SIZE = 4,
+        FLOAT_SIZE = 4,
+        DOUBLE_SIZE = 8,
+        LONG_SIZE = 8,
+        LONGLONG_SIZE = 8,
+        POINTER_SIZE = 8,
+        LONGDOUBLE_SIZE = 16
+    };
+
+    // If variable, get type (WON"T ALWAYS WORK)
+    while(node->ast_type_name == SYM_ENTRY_TYPE) {
+        node = node->ast_sym_entry.sym_node;
+    }
+
+    // Checks type
+    switch(node->node_type) {
+        case NUMBER_TYPE:
+            // Gets size
+            switch(node->ast_number.number.size_specifier) {
+                case INT_TYPE:
+                    size_value.i_value = INT_SIZE;
+                    break;
+
+                case FLOAT_TYPE:
+                    size_value.i_value = FLOAT_SIZE;
+                    break;
+
+                case DOUBLE_TYPE:
+                    size_value.i_value = DOUBLE_SIZE;
+                    break;
+
+                case LONG_TYPE:
+                    size_value.i_value = LONG_SIZE;
+                    break;
+
+                case LONGLONG_TYPE:
+                    size_value.i_value = LONGLONG_SIZE;
+                    break;
+
+                case LONGDOUBLE_TYPE:
+                    size_value.i_value = LONGDOUBLE_SIZE;
+                    break;
+                
+                default:
+                    fprintf(stderr, "ERROR: Size of NUMBER_TYPE unknown.\n");
+            }
+            break;
+
+        case SCALAR_TYPE:
+            // Gets size
+            switch(node->ast_scalar.scalar_type) {
+                case VOID_ST:
+                    size_value.i_value = POINTER_SIZE; // Is this right?
+                    break;
+
+                case CHAR_ST:
+                    size_value.i_value = CHAR_SIZE;
+                    break;
+
+                case SHORT_ST:
+                    size_value.i_value = SHORT_SIZE;
+                    break;
+
+                case INT_ST:
+                    size_value.i_value = INT_SIZE;
+                    break;
+
+                case LONG_ST:
+                    size_value.i_value = LONG_SIZE;
+                    break;
+
+                case LONG_LONG_ST:
+                    size_value.i_value = LONGLONG_SIZE;
+                    break;
+
+                case FLOAT_ST:
+                    size_value.i_value = FLOAT_SIZE;
+                    break;
+
+                case DOUBLE_ST:
+                    size_value.i_value = DOUBLE_SIZE;
+                    break;
+
+                case LONG_DOUBLE_ST:
+                    size_value.i_value = LONGDOUBLE_SIZE;
+                    break;
+
+                case BOOL_ST:
+                    size_value.i_value = CHAR_SIZE;
+                    break;
+
+                default:
+                    fprintf(stderr, "ERROR: Size of SCALAR_TYPE unknown.\n");
+            }
+            break;
+
+        case POINTER_TYPE:
+            size_value.i_value = POINTER_SIZE;
+            break;
+
+        case ARRAY_TYPE:
+            size_value.i_value = node->ast_array.arr_size * get_size_of(node->ast_array.arr_type)->ast_number.number.i_value;
+            break;
+
+        default:
+            fprintf(stderr, "ERROR: Cannot determine size.\n");
+            return NULL; // Should this kill the program?
+    }
+
+    // Returns new constant astnode
+    return create_number_node(size_value);
 }
 
 // Generates IR for assignments
@@ -455,7 +587,7 @@ void gen_conditional_expr_IR(astnode *cond_expr, basic_block *true_branch, basic
     // If single expression, compare to 0
     num_type num;
     num.i_value = 0;
-    num.is_signed = UNSIGNED_TYPE;
+    num.is_signed = SIGNED_TYPE;
     num.size_specifier = INT_TYPE;
     astnode *num_zero = create_number_node(num);
 
