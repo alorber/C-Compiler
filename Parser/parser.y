@@ -232,7 +232,8 @@ decl_or_fnc_def_list: decl_or_fnc_def                       {fprintf(stderr,"\n\
 
 
 decl_or_fnc_def: declaration    {print_ast($1,0,0);}
-               | fnc_def        {generate_function_quads($1);}
+               | fnc_def        {generate_function_quads($1);
+                                 print_function_quads();}
                ;
 
 declaration: decl_specifier ';'                   {$$ = $1;}

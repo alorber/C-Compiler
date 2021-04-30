@@ -12,10 +12,11 @@
 
 // Basic Block
 typedef struct basic_block {
-    char *block_label;                         // Unique label
-    struct quad_list_entry *quad_list;  // Linked list of quads
-    struct basic_block *next, *branch;         // Branch = branch on true condition
-    int branch_condition;                      // Type of comparator (from op_codes enum below)
+    char *block_label;                    // Unique label
+    struct quad_list_entry *quad_list;    // Linked list of quads
+    struct basic_block *next, *branch;    // Branch = branch on true condition
+    int branch_condition;                 // Type of comparator (from op_codes enum below)
+    int was_printed;                      // Used when printing blocks, so no endless loops
 } basic_block;
 
 // Entry in linked list of basic blocks
@@ -166,5 +167,20 @@ void gen_return_stmt_IR(astnode *node);
 
 // Generates IR for function call
 void gen_fnc_call_IR(astnode *node);
+
+// Printing Functions
+// ------------------
+
+// Prints the quads of the most recent function
+void print_function_quads();
+
+// Prints basic block
+void print_block(basic_block *block);
+
+// Prints quad
+void print_quad(quad q);
+
+// Prints name of node
+char *node_name_to_string(astnode *node);
 
 #endif // QUADS_H

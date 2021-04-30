@@ -69,6 +69,9 @@ struct basic_block *create_basic_block(char *block_label) {
 
     b_block->quad_list = NULL;
     b_block->next = NULL;
+    b_block->branch = NULL;
+    b_block->branch_condition = NONE_OC;
+    b_block->was_printed = 0;
 
     return b_block;
 }
@@ -228,6 +231,7 @@ void *emit_quad(int op_code, int op_size, struct astnode *src1, struct astnode *
     }
 
     quad_entry->quad = new_quad;
+    quad_entry->next = NULL;
 
     // Appends to linked list
     if(curr_quad == NULL) {
@@ -243,6 +247,10 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
     
     // Checks type of node
     switch(node->node_type) {
+        // Temp Nodes
+        case TEMP_TYPE:
+            return node;
+
         // Variables
         case SYM_ENTRY_TYPE:
             // Scalar Variable
@@ -1071,4 +1079,216 @@ void gen_fnc_call_IR(astnode *node) {
 
     // Emits quad for function call
     emit_quad(CALL_OC, NULL, node->ast_fnc_call.function_name, NULL, NULL);
+}
+
+// Printing Functions
+// ------------------
+
+// Prints the quads of the most recent function
+// Just so no chance of messing things up from parser
+void print_function_quads() {
+    fprintf(stdout, "\n");
+    print_block(block_list->tail);
+}
+
+// Prints basic block and follows chain
+void print_block(basic_block *block) {
+    // Prints name of block
+    fprintf(stdout, "\nBlock: %s\n", block->block_label);
+
+    // Checks if previously printed
+    if(block->was_printed == 1) {
+        return;
+    }
+
+    // Loops through quads, printing each
+    quad_list_entry curr_quad_entry = block->quad_list;
+    while(curr_quad_entry != NULL) {
+        print_quad(curr_quad_entry.quad);
+        curr_quad_entry = curr_quad_entry.next;
+    }
+
+    // Sets as printed
+    block->was_printed = 1;
+
+    // Checks for branch
+    if(block->branch) {
+        // Prints comparison opcode
+        fprintf(stdout, "%s ", op_code_to_string(block->branch_condition));
+        
+        // Prints true branch
+        print_block(block->branch);
+    }
+    // Prints false / default branch
+    if(block->next) {
+        print_block(block->next);
+    }
+}
+
+// Prints quad
+void print_quad(quad q) {
+    // Prints target
+    if(q.dest != NULL) {
+        fprintf(stdout, "%s = ", node_name_to_string(q.dest));
+    }
+
+    // Prints op_code
+    fprintf(stdout, "%s  ", op_code_to_string(q.op_code));
+
+    // Prints sources
+    if(q.src1 !== NULL) {
+        fprintf(stdout, "%s", node_name_to_string(q.src1));
+    }
+    if(q.src1 != NULL && q.src2 !== NULL) {
+        fprintf(stdoout, ", ");
+    }
+    if(q.src2 != NULL) {
+        fprintf(stdout, "%s", node_name_to_string(q.src2));
+    }
+
+    fprintf(stdout, "\n");
+}
+
+char *op_code_to_string(int op_code) {
+    switch(op_code) {
+        case NONE_OC:
+            return "";
+
+        // Addressing & Assigning
+        case LOAD_OC:
+            return "LOAD";
+        case STORE_OC:
+            return "STORE";
+        case LEA_OC:
+            return "LEA";
+        case MOV_OC:
+            return "MOV";
+
+        // Arithmetic Operations
+        case ADD_OC:
+            return "ADD";
+        case SUB_OC:
+            return "SUB";
+        case MUL_OC:
+            return "MUL";
+        case DIV_OC:
+            return "DIV";
+        case MOD_OC:
+            return "MOD";
+
+        // Bitwise Operators
+        case AND_OC:
+            return "AND";
+        case OR_OC:
+            return "OR";
+        case XOR_OC:
+            return "XOR";
+        case SHL_OC:
+            return "SHL";
+        case SHR_OC:
+            return "SHR";
+
+        // Comparison Operators
+        case EQEQ_OC:
+            return "EQEQ";
+        case NEQ_OC:
+            return "NEQ";
+        case LT_OC:
+            return "LT";
+        case GT_OC:
+            return "GT";
+        case LTEQ_OC:
+            return "LTEQ";
+        case GTEQ_OC:
+            return "GTEQ";
+        case CMP_OC:
+            return "CMP";
+
+        // Function Operators
+        case RETURN_OC:
+            return "RETURN";
+        case ARGBEGIN_OC:
+            return "ARGBEGIN";
+        case ARG_OC:
+            return "ARG";
+        case CALL_OC:
+            return "CALL";
+
+        default:
+            fprintf(stderr, "ERROR: Cannot determine op_code to print,\n");
+            return "";
+    }
+}
+
+// Prints name of node
+char *node_name_to_string(astnode *node) {
+    char *node_name[256];
+
+    switch(node->node_type) {
+        case TEMP_TYPE:
+            strcpy(node_name, node->ast_temp_node.name);
+            break;
+        
+        case SYM_ENTRY_TYPE:
+            strcpy(node_name, node->ast_sym_entry.symbol);
+            break;
+
+        case NUMBER_TYPE:
+            // Checks if signed
+            if(node->ast_number.number.is_signed == SIGNED_TYPE) {
+                switch(node->ast_number.number.size_specifier) {
+                    case INT_TYPE:
+                        sprintf(node_name, "%d", (int) node->ast_number.number.i_value);
+                        break;
+
+                    case FLOAT_TYPE:
+                        sprintf(node_name, "%f", (float) node->ast_number.number.d_value);
+                        break;
+
+                    case DOUBLE_TYPE:
+                        sprintf(node_name, "%f", (double) node->ast_number.number.d_value);
+                        break;
+
+                    case LONG_TYPE:
+                        sprintf(node_name, "%ld", (long) node->ast_number.number.i_value);
+                        break;
+
+                    case LONGLONG_TYPE:
+                        sprintf(node_name, "%lld", (long long) node->ast_number.number.i_value);
+                        break;
+
+                    case LONGDOUBLE_TYPE:
+                        sprintf(node_name, "%Lf",  (long double) node->ast_number.number.d_value);
+                    
+                }
+            } else {
+                switch(node->ast_number.number.size_specifier) {
+                    case INT_TYPE:
+                        sprintf(node_name, "%u", (unsigned int) node->ast_number.number.i_value);
+                        break;
+
+                    case LONG_TYPE:
+                        sprintf(node_name, "%lu", (unsigned long) node->ast_number.number.i_value);
+                        break;
+
+                    case LONGLONG_TYPE:
+                        sprintf(node_name, "%llu", (unsigned long long) node->ast_number.number.i_value);
+                        break;
+                }
+            }
+
+        case CHARLIT_TYPE:
+            strcpy(node_name, node->ast_charlit.charlit);
+            break;
+
+        case STRING_TYPE:
+            strcpy(node_name, node->ast_string.string);
+            break;
+
+        case IDENT_TYPE:
+            strcpy(node->ast_ident.ident);
+            break;
+    }
+
+    return node_name;
 }
