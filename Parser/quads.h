@@ -64,6 +64,10 @@ enum op_codes {
     LTEQ_OC,
     GTEQ_OC,
     CMP_OC,
+    // Unary Operators
+    NOT_OC,
+    NEG_OC,
+    COMPL_OC,
     // Function Operators
     RETURN_OC,
     ARGBEGIN_OC,
@@ -123,7 +127,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target);
 struct astnode *get_lvalue(struct astnode *node, int *mode);
 
 // Creates a temporary node
-struct astnode *create_temp_node();
+struct astnode *get_temp_node();
 
 // Determines size of value
 // No variable lengths, so will return constant value
@@ -178,7 +182,10 @@ void print_function_quads();
 void print_block(basic_block *block);
 
 // Prints quad
-void print_quad(quad q);
+void print_quad(quad *q);
+
+// Converts op_code to string
+char *op_code_to_string(int op_code);
 
 // Prints name of node
 char *node_name_to_string(astnode *node);

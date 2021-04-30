@@ -103,7 +103,7 @@ void generate_function_quads(astnode *node) {
     // Makes sure that node is a function
     if(node->node_type != SYM_ENTRY_TYPE || node->ast_sym_entry.sym_type != FNC_NAME_TYPE) {
         fprintf(stderr, "ERROR: Can only print quads of function.\n");
-        return NULL; // Should this kill the program?
+        return; // Should this kill the program?
     }
 
     // Sets current basic block
@@ -150,7 +150,7 @@ void generate_quads(astnode *node) {
         case WHILE_LOOP_TYPE:
             // Do while loop
             if(node->ast_while_loop.is_do_while) {
-                gen_do_while_loop_IR(node)
+                gen_do_while_loop_IR(node);
             }
             // While loop
             else {
@@ -188,9 +188,9 @@ void generate_quads(astnode *node) {
             return;
 
         // Compound statement
-        case COMPOUND_STMT_TYPE:
+        case COMPOUND_STMT_TYPE:;
             // Loop through statements
-            astnode_list_entry *curr_statement = node->ast_compound_stmt.statement_block->ast_node_list_head;
+            astnode_list_entry *curr_statement = &(node->ast_compound_stmt.statement_block->ast_node_list_head);
             while(curr_statement != NULL) {
                 // Don't want to pass null node
                 if(curr_statement->node != NULL) {
@@ -205,6 +205,7 @@ void generate_quads(astnode *node) {
 }
 
 // Creates a new quad and appends it to linked list of quads
+// Currently has field for size - Not sure if needed
 void *emit_quad(int op_code, int op_size, struct astnode *src1, struct astnode *src2, struct astnode *dest) {
     // Creates new quad
     quad *new_quad;
@@ -246,6 +247,7 @@ void *emit_quad(int op_code, int op_size, struct astnode *src1, struct astnode *
 struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
     
     // Checks type of node
+    int op_code;
     switch(node->node_type) {
         // Temp Nodes
         case TEMP_TYPE:
@@ -264,10 +266,10 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             && node->ast_sym_entry.sym_node->node_type == ARRAY_TYPE) {
                 // Checks if target
                 if(target == NULL) {
-                    target = create_temp_node();
+                    target = get_temp_node();
                 }
 
-                emit_quad(LEA_OC, NULL, node, NULL, target); // Should src1 be the array node?
+                emit_quad(LEA_OC, -1, node, NULL, target); // Should src1 be the array node?
                 return target;
             }
             break; // Will it ever get here?
@@ -280,12 +282,12 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             return node;
 
         // Binary Operations
-        case BINARY_TYPE:
+        case BINARY_TYPE:;
             astnode *left = get_rvalue(node->ast_binary_op.left_expr, NULL);
             astnode *right = get_rvalue(node->ast_binary_op.right_expr, NULL);
 
             // Gets op code
-            int op_code = -1;
+            op_code = -1;
             switch(node->ast_binary_op.op) {
                 case '+':
                     op_code = ADD_OC;
@@ -326,7 +328,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                     int left_type, right_type; // Stores type of operands (Uses enum for ast types)
 
                     // Checks type of left operand
-                    if(node->ast_binary_op.left_expr->node_type == SYM_ENTRY_TYPE) && 
+                    if((node->ast_binary_op.left_expr->node_type == SYM_ENTRY_TYPE) && 
                     (node->ast_binary_op.left_expr->ast_sym_entry.sym_node->node_type == POINTER_TYPE ||
                     node->ast_binary_op.left_expr->ast_sym_entry.sym_node->node_type == ARRAY_TYPE)) {
                         left_type = POINTER_TYPE;
@@ -367,8 +369,8 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                         }
 
                         // Evaluates amount to add
-                        astnode *temp_node = create_temp_node(NULL);
-                        emit_quad(MUL_OC, NULL, node->ast_binary_op.right_expr, pointee_size, temp_node);
+                        astnode *temp_node = get_temp_node();
+                        emit_quad(MUL_OC, -1, node->ast_binary_op.right_expr, pointee_size, temp_node);
                         right = temp_node;
                     }
                     // (2) number +- pointer / Array
@@ -382,8 +384,8 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                         }
 
                         // Evaluates amount to add
-                        astnode *temp_node = create_temp_node(NULL);
-                        emit_quad(MUL_OC, NULL, node->ast_binary_op.left_expr, pointee_size, temp_node);
+                        astnode *temp_node = get_temp_node();
+                        emit_quad(MUL_OC, -1, node->ast_binary_op.left_expr, pointee_size, temp_node);
                         left = temp_node;
                     }
                     // (3) pointer / Array +- pointer / Array 
@@ -404,8 +406,8 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
                         // Two step process
                         // 1) Subtraction
-                        astnode *temp_node = create_temp_node(NULL);
-                        emit_quad(SUB_OC, NULL, left, right, temp_node);
+                        astnode *temp_node = get_temp_node();
+                        emit_quad(SUB_OC, -1, left, right, temp_node);
                         
                         // 2) Division
                         op_code = DIV_OC;
@@ -416,14 +418,14 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
                 // Checks if target
                 if(target == NULL) {
-                    target = create_temp_node();
+                    target = get_temp_node();
                 }
-                emit_quad(op_code, NULL, left, right, target);
+                emit_quad(op_code, -1, left, right, target);
                 return target;
             }
 
             // Checks comparison operators
-            switch(cond_expr->ast_binary_op.op) {
+            switch(node->ast_binary_op.op) {
                 case EQEQ:
                     op_code = EQEQ_OC;
                     break;
@@ -461,20 +463,20 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
                 // Checks if target
                 if(target == NULL) {
-                    target = create_temp_node();
+                    target = get_temp_node();
                 }
 
                 // Creates quads for true branch (return 1)
                 set_block(true_block);
                 astnode *num_one = create_num_one_node();
-                emit_quad(MOV_OC, NULL, num_one, NULL, target);
+                emit_quad(MOV_OC, -1, num_one, NULL, target);
                 link_blocks(NULL, next_block, NONE_OC);
 
                 // Creates quads for false brach (returns 0)
                 set_block(false_block);
                 astnode *num_zero = create_num_one_node();
                 num_zero->ast_number.number.i_value = 0;
-                emit_quad(MOV_OC, NULL, num_zero, NULL, target);
+                emit_quad(MOV_OC, -1, num_zero, NULL, target);
                 link_blocks(NULL, next_block, NONE_OC);
 
                 set_block(next_block);
@@ -493,10 +495,10 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
                 // Checks if target
                 if(target == NULL) {
-                    target = create_temp_node();
+                    target = get_temp_node();
                 }
 
-                emit_quad(LOAD_OC, NULL, addr, NULL, target);
+                emit_quad(LOAD_OC, -1, addr, NULL, target);
                 return target;
             }
             // Address of operator
@@ -507,10 +509,10 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                     case SYM_ENTRY_TYPE:
                         // Checks if target
                         if(target == NULL) {
-                            target = create_temp_node();
+                            target = get_temp_node();
                         }
 
-                        emit_quad(LEA_OC, NULL, node->ast_unary_op.expr, NULL, target);
+                        emit_quad(LEA_OC, -1, node->ast_unary_op.expr, NULL, target);
                         break;
 
                     // Pointer dereference
@@ -518,7 +520,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                         if(node->ast_unary_op.op == '*') {
                             // Checks if target
                             if(target == NULL) {
-                                target = create_temp_node();
+                                target = get_temp_node();
                             }
 
                             // Operators cancel each other out
@@ -527,15 +529,15 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                         }
                         // No break on purpose
 
-                    default:
+                    default:;
                         astnode *expr_rvalue = get_rvalue(node->ast_unary_op.expr, NULL);
 
                         // Checks if target
                         if(target == NULL) {
-                            target = create_temp_node();
+                            target = get_temp_node();
                         }
 
-                        emit_quad(LEA_OC, NULL, expr_rvalue, NULL, target);
+                        emit_quad(LEA_OC, -1, expr_rvalue, NULL, target);
                 }
                 return target;
             }
@@ -546,11 +548,11 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
                 // Checks if target
                 if(target == NULL) {
-                    target = create_temp_node();
+                    target = get_temp_node();
                 }
 
                 // Moves expr to target
-                emit_quad(MOV_OC, NULL, expr_rvalue, NULL, target);
+                emit_quad(MOV_OC, -1, expr_rvalue, NULL, target);
 
                 // Updates variable with incr / decr
                 gen_incr_decr_IR(node);
@@ -561,31 +563,50 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             if(node->ast_unary_op.op == SIZEOF) {
                 // Checks if target
                 if(target == NULL) {
-                    target = create_temp_node();
+                    target = get_temp_node();
                 }
 
                 // Moves size to target
                 astnode *size = get_size_of(node->ast_unary_op.expr);
-                emit_quad(MOV_OC, NULL, size, NULL, target);
+                emit_quad(MOV_OC, -1, size, NULL, target);
                 return target;
             }
             // Other Unary Operators
-            int op_code = -1;
+            op_code = -1;
             switch(node->ast_unary_op.op) {
                 case '+':
+                    // Not sure what to do here
+                   
+                   // Checks if target
+                    if(target == NULL) {
+                        target = get_temp_node();
+                    }
+
+                    get_rvalue(node->ast_unary_op.expr, target);
+                    return target;
+
                 case '-':
+                    // Should this multiply by (-1)?
+                    op_code = NEG_OC;
+                    break;
+
                 case '!':
+                    op_code = NOT_OC;
+                    break;
+
                 case '~':
+                    op_code = COMPL_OC;
+                    break;
             }
 
             // Checks if target
             if(target == NULL) {
-                target = create_temp_node();
+                target = get_temp_node();
             }
 
             // Checks if expression was found
-            if(op > 0) {
-                emit_quad(op_code, NULL, get_rvalue(node->ast_unary_op.expr, NULL), NULL, target);
+            if(op_code > 0) {
+                emit_quad(op_code, -1, get_rvalue(node->ast_unary_op.expr, NULL), NULL, target);
                 return target;
             }
     }
@@ -622,7 +643,7 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
 }
 
 // Creates a temporary node
-struct astnode *create_temp_node() {
+struct astnode *get_temp_node() {
     static int num_temps = 0; // Number of temp nodes created - Used for naming
 
     return create_temp_node(num_temps);
@@ -649,7 +670,7 @@ astnode *get_size_of(astnode *node) {
     };
 
     // If variable, get type (WON"T ALWAYS WORK)
-    while(node->ast_type_name == SYM_ENTRY_TYPE) {
+    while(node->node_type == SYM_ENTRY_TYPE) {
         node = node->ast_sym_entry.sym_node;
     }
 
@@ -808,7 +829,7 @@ void gen_assignment_IR(astnode *node) {
         astnode *rvalue = get_rvalue(node->ast_binary_op.right_expr,dest);
     } else {
         astnode *rvalue = get_rvalue(node->ast_binary_op.right_expr,NULL);
-        emit_quad(STORE_OC, NULL, rvalue, dest, NULL);
+        emit_quad(STORE_OC, -1, rvalue, dest, NULL);
     }
 }
 
@@ -836,7 +857,7 @@ void gen_if_stmt_IR(astnode *node) {
     basic_block *false_block = create_basic_block(NULL);
 
     // Checks if else statement
-    astnode *next_block;
+    basic_block *next_block;
     if(node->ast_if_else.else_body) {
         next_block = create_basic_block(NULL);
     } else {
@@ -902,7 +923,7 @@ void gen_conditional_expr_IR(astnode *cond_expr, basic_block *true_branch, basic
             astnode *right_expr = get_rvalue(cond_expr->ast_binary_op.right_expr, NULL);
 
             // Compare quad
-            emit_quad(CMP_OC, NULL, left_expr, right_expr, NULL);
+            emit_quad(CMP_OC, -1, left_expr, right_expr, NULL);
 
             // Attaches true and false branches to current block
             link_blocks(true_branch, false_branch, op_code);
@@ -921,10 +942,10 @@ void gen_conditional_expr_IR(astnode *cond_expr, basic_block *true_branch, basic
     if(cond_expr->node_type == SYM_ENTRY_TYPE && cond_expr->ast_sym_entry.sym_type == VAR_TYPE
     && cond_expr->ast_sym_entry.ident_var.var_type->node_type == SCALAR_TYPE) {
         // Compares with zero
-        emit_quad(CMP_OC, NULL, cond_expr);
+        emit_quad(CMP_OC, -1, cond_expr, num_zero, NULL);
     } else {
         // Otherwise, attempts to determine value
-        emit_quad(CMP_OC, NULL, get_rvalue(cond_expr,NULL), num_zero, NULL);
+        emit_quad(CMP_OC, -1, get_rvalue(cond_expr,NULL), num_zero, NULL);
     }
     
     // Attaches true and false branches to current block
@@ -1059,26 +1080,33 @@ void gen_continue_stmt_IR() {
 
 // Generates IR for return
 void gen_return_stmt_IR(astnode *node) {
-    emit_quad(RETURN_OC, NULL, get_rvalue(node->ast_return.return_expr,NULL), NULL, NULL);
+    emit_quad(RETURN_OC, -1, get_rvalue(node->ast_return.return_expr,NULL), NULL, NULL);
 }
 
 // Generates IR for function call
 void gen_fnc_call_IR(astnode *node) {
+    // Creates number node for argument number
+    num_type arg_num;
+    arg_num.is_signed = SIGNED;
+    arg_num.size_specifier = INT_TYPE;
+    arg_num.i_value = node->ast_fnc_call.num_arguments;
+
+
     // Emit quad for argument number
-    emit_quad(ARGBEGIN_OC, NULL, node->ast_fnc_call.num_arguments, NULL, NULL);
+    emit_quad(ARGBEGIN_OC, -1, create_number_node(arg_num), NULL, NULL);
 
     // Creates number astnode to pass to quad
     astnode *arg_number = create_num_one_node();
     // Emits quads for arguments
-    astnode_list_entry *curr_arg = node->ast_fnc_call.expr_list_head->ast_node_list_head;
+    astnode_list_entry *curr_arg = &(node->ast_fnc_call.expr_list_head->ast_node_list_head);
     for(int i = 1; i <= node->ast_fnc_call.num_arguments; i++) { // Should this be right to left?
         arg_number->ast_number.number.i_value = i;
-        emit_quad(ARG, NULL, arg_number, curr_arg->node, NULL);
+        emit_quad(ARG_OC, -1, arg_number, curr_arg->node, NULL);
         curr_arg = curr_arg->next;
     }
 
     // Emits quad for function call
-    emit_quad(CALL_OC, NULL, node->ast_fnc_call.function_name, NULL, NULL);
+    emit_quad(CALL_OC, -1, node->ast_fnc_call.function_name, NULL, NULL);
 }
 
 // Printing Functions
@@ -1088,7 +1116,7 @@ void gen_fnc_call_IR(astnode *node) {
 // Just so no chance of messing things up from parser
 void print_function_quads() {
     fprintf(stdout, "\n");
-    print_block(block_list->tail);
+    print_block(block_list->tail->bb);
 }
 
 // Prints basic block and follows chain
@@ -1102,10 +1130,10 @@ void print_block(basic_block *block) {
     }
 
     // Loops through quads, printing each
-    quad_list_entry curr_quad_entry = block->quad_list;
+    quad_list_entry *curr_quad_entry = block->quad_list;
     while(curr_quad_entry != NULL) {
-        print_quad(curr_quad_entry.quad);
-        curr_quad_entry = curr_quad_entry.next;
+        print_quad(curr_quad_entry->quad);
+        curr_quad_entry = curr_quad_entry->next;
     }
 
     // Sets as printed
@@ -1126,29 +1154,30 @@ void print_block(basic_block *block) {
 }
 
 // Prints quad
-void print_quad(quad q) {
+void print_quad(quad *q) {
     // Prints target
-    if(q.dest != NULL) {
-        fprintf(stdout, "%s = ", node_name_to_string(q.dest));
+    if(q->dest != NULL) {
+        fprintf(stdout, "%s = ", node_name_to_string(q->dest));
     }
 
     // Prints op_code
-    fprintf(stdout, "%s  ", op_code_to_string(q.op_code));
+    fprintf(stdout, "%s  ", op_code_to_string(q->op_code));
 
     // Prints sources
-    if(q.src1 !== NULL) {
-        fprintf(stdout, "%s", node_name_to_string(q.src1));
+    if(q->src1 != NULL) {
+        fprintf(stdout, "%s", node_name_to_string(q->src1));
     }
-    if(q.src1 != NULL && q.src2 !== NULL) {
-        fprintf(stdoout, ", ");
+    if(q->src1 != NULL && q->src2 != NULL) {
+        fprintf(stdout, ", ");
     }
-    if(q.src2 != NULL) {
-        fprintf(stdout, "%s", node_name_to_string(q.src2));
+    if(q->src2 != NULL) {
+        fprintf(stdout, "%s", node_name_to_string(q->src2));
     }
 
     fprintf(stdout, "\n");
 }
 
+// Converts op_code to string
 char *op_code_to_string(int op_code) {
     switch(op_code) {
         case NONE_OC:
@@ -1222,7 +1251,7 @@ char *op_code_to_string(int op_code) {
 
 // Prints name of node
 char *node_name_to_string(astnode *node) {
-    char *node_name[256];
+    char *node_name = calloc(256, sizeof(char));
 
     switch(node->node_type) {
         case TEMP_TYPE:
@@ -1286,7 +1315,7 @@ char *node_name_to_string(astnode *node) {
             break;
 
         case IDENT_TYPE:
-            strcpy(node->ast_ident.ident);
+            strcpy(node_name, node->ast_ident.ident);
             break;
     }
 

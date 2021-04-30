@@ -1,7 +1,7 @@
 # Andrew Lorber
 # Compilers - Parser Make File
 
-parser: parser.tab.o symbol_table.o astFunctions.o lexer.yy.o lexerFunctions.o
+parser: parser.tab.o quads.o symbol_table.o astFunctions.o lexer.yy.o lexerFunctions.o
 		gcc -o parser parser.tab.o symbol_table.o astFunctions.o ../Lexer/lexer.yy.o ../Lexer/lexerFunctions.o
 
 parser.tab.o: parser.y
@@ -11,6 +11,9 @@ parser.tab.o: parser.y
 		gcc -c -o parser.tab.o parser.tab.c
 
 parser.tab.h: parser.tab.o
+
+quads.o: astFunctions.o quads.h quads.c
+		gcc -c -o quads.o quads.c
 
 symbol_table.o: astFunctions.o symbol_table.h symbol_table.c 
 		gcc -c -o symbol_table.o symbol_table.c
@@ -31,4 +34,4 @@ lexerFunctions.o: ../Lexer/lexerFunctions.h ../Lexer/lexerFunctions.c
 
 clean:
 		rm -f ../Lexer/lexerFunctions.o ../Lexer/lexer.yy.c ../Lexer/lexer.yy.o ../Lexer/lexer
-		rm -f symbol_table.o astFunctions.o parser.tab.h parser.tab.c parser.tab.o parser parser.output
+		rm -f quads.o symbol_table.o astFunctions.o parser.tab.h parser.tab.c parser.tab.o parser parser.output
