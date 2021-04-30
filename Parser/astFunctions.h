@@ -268,7 +268,7 @@ typedef struct astnode_function {
 // Temp node used for IR generation
 typedef struct astnode_temp_node {
     char *name;
-    astnode *temp_value; // Can store whatever value needs to be stored
+    struct astnode *temp_value; // Can store whatever value needs to be stored
 } astnode_temp_node;
 
 // Symbol Table Nodes

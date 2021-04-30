@@ -21,14 +21,14 @@ typedef struct basic_block {
 // Entry in linked list of basic blocks
 // Each list entry contains the basic blocks of a function
 typedef struct basic_block_list_entry {
-    basic_block *bb;
-    basic_block_list_entry *next;
+    struct basic_block *bb;
+    struct basic_block_list_entry *next;
 } basic_block_list_entry;
 
 typedef struct basic_block_list {
-    basic_block_list_entry *head;
-    basic_block_list_entry *tail;
-}
+    struct basic_block_list_entry *head;
+    struct basic_block_list_entry *tail;
+} basic_block_list;
 
 // Entry in linked list of quads (used in basic block)
 typedef struct quad_list_entry {
