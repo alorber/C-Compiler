@@ -327,6 +327,8 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                 if(op_code == ADD_OC || op_code == SUB_OC) {
                     int left_type, right_type; // Stores type of operands (Uses enum for ast types)
 
+                    // Should an arithmetic operator node be accepted as a number value?
+
                     // Checks type of left operand
                     if((node->ast_binary_op.left_expr->node_type == SYM_ENTRY_TYPE) && 
                     (node->ast_binary_op.left_expr->ast_sym_entry.sym_node->node_type == POINTER_TYPE ||
@@ -370,7 +372,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
                         // Evaluates amount to add
                         astnode *temp_node = get_temp_node();
-                        emit_quad(MUL_OC, -1, node->ast_binary_op.right_expr, pointee_size, temp_node);
+                        emit_quad(MUL_OC, -1, right, pointee_size, temp_node);
                         right = temp_node;
                     }
                     // (2) number +- pointer / Array
@@ -385,7 +387,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
                         // Evaluates amount to add
                         astnode *temp_node = get_temp_node();
-                        emit_quad(MUL_OC, -1, node->ast_binary_op.left_expr, pointee_size, temp_node);
+                        emit_quad(MUL_OC, -1, left, pointee_size, temp_node);
                         left = temp_node;
                     }
                     // (3) pointer / Array +- pointer / Array 
@@ -940,7 +942,7 @@ void gen_conditional_expr_IR(astnode *cond_expr, basic_block *true_branch, basic
 
     // Checks if constant variable
     if(cond_expr->node_type == SYM_ENTRY_TYPE && cond_expr->ast_sym_entry.sym_type == VAR_TYPE
-    && cond_expr->ast_sym_entry.ident_var.var_type->node_type == SCALAR_TYPE) {
+    && cond_expr->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) {
         // Compares with zero
         emit_quad(CMP_OC, -1, cond_expr, num_zero, NULL);
     } else {
