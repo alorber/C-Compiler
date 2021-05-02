@@ -156,7 +156,6 @@ void generate_quads(astnode *node) {
             else {
                 gen_while_loop_IR(node);
             }
-            
             return;
 
         // For loop
@@ -174,7 +173,6 @@ void generate_quads(astnode *node) {
             else {
                 gen_continue_stmt_IR();
             }
-            
             return;
 
         // Return statement
@@ -258,7 +256,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             // Scalar Variable
             if(node->ast_sym_entry.sym_type == VAR_TYPE 
             && node->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) {
-                return node; // Should I return the scalar node or sym entry node?
+                return node;
             }
 
             // Array Varible
@@ -269,10 +267,10 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                     target = get_temp_node();
                 }
 
-                emit_quad(LEA_OC, -1, node, NULL, target); // Should src1 be the array node?
+                emit_quad(LEA_OC, -1, node, NULL, target);
                 return target;
             }
-            break; // Will it ever get here?
+            break;
 
         // Constants
         case NUMBER_TYPE:
@@ -497,7 +495,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                     target = get_temp_node();
                 }
 
-                // Creates quads for true branch (return 1)
+                // Creates quads for true branch (returns 1)
                 set_block(true_block);
                 astnode *num_one = create_num_one_node();
                 emit_quad(MOV_OC, -1, num_one, NULL, target);
@@ -651,9 +649,9 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
             if(node->ast_sym_entry.sym_type == VAR_TYPE
                 && node->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) {
                 *mode = DIRECT_MODE;
-                return node; // Should this return the scalar node instead of the sym entry?
+                return node;
             }
-            break; // Will it ever get here?
+            break;
 
         // Constants
         case NUMBER_TYPE:
@@ -667,7 +665,7 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
                 *mode = INDIRECT_MODE;
                 return get_rvalue(node->ast_unary_op.expr,NULL);
             }
-            break; // Will it ever get here?
+            break;
     }
 
     return NULL;
@@ -675,7 +673,7 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
 
 // Creates a temporary node
 struct astnode *get_temp_node() {
-    static int num_temps = 0; // Number of temp nodes created - Used for naming
+    static int num_temps = 0; // Number of temp nodes created (Used for naming)
 
     return create_temp_node(num_temps++);
 }
@@ -700,7 +698,7 @@ astnode *get_size_of(astnode *node) {
         LONGDOUBLE_SIZE = 16
     };
 
-    // If variable, get type (WON"T ALWAYS WORK)
+    // If variable, get type
     while(node->node_type == SYM_ENTRY_TYPE) {
         node = node->ast_sym_entry.sym_node;
     }
@@ -812,15 +810,15 @@ astnode *compare_pointers(astnode *left_pointer, astnode *right_pointer) {
         return NULL;
     }
 
-    // If pointer, move in a level
+    // If pointer, moves in a level
     if(left_pointer->node_type == POINTER_TYPE) {
         return compare_pointers(left_pointer->ast_pointer.pointer_type, right_pointer->ast_pointer.pointer_type);
     }
-    // If array, move in a level
+    // If array, moves in a level
     if(left_pointer->node_type == ARRAY_TYPE) {
         return compare_pointers(left_pointer->ast_array.arr_type, right_pointer->ast_array.arr_type);
     }
-    // If constatnt, compare sizes
+    // If constant, compares sizes
     if((left_pointer->node_type == SYM_ENTRY_TYPE && left_pointer->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) 
     || left_pointer->node_type == NUMBER_TYPE) {
         astnode *pointer_size = get_size_of(left_pointer);
@@ -963,7 +961,7 @@ void gen_conditional_expr_IR(astnode *cond_expr, basic_block *true_branch, basic
             return;
         }
     }
-    // If single expression, compare to 0
+    // If single expression, compares to 0
     num_type num;
     num.i_value = 0;
     num.is_signed = SIGNED_TYPE;
