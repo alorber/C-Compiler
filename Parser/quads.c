@@ -1117,6 +1117,7 @@ void gen_fnc_call_IR(astnode *node) {
 void print_function_quads() {
     fprintf(stdout, "\n");
     print_block(block_list->tail->bb);
+    fprintf(stdout, "\n\n");
 }
 
 // Prints basic block and follows chain
@@ -1126,6 +1127,7 @@ void print_block(basic_block *block) {
 
     // Checks if previously printed
     if(block->was_printed == 1) {
+        fprintf(stdout,"\tAlready printed\n");
         return;
     }
 
@@ -1142,20 +1144,28 @@ void print_block(basic_block *block) {
     // Checks for branch
     if(block->branch) {
         // Prints comparison opcode
-        fprintf(stdout, "\n%s ", op_code_to_string(block->branch_condition));
+        fprintf(stdout, "\n%s True", op_code_to_string(block->branch_condition));
         
         // Prints true branch
         print_block(block->branch);
     }
     // Prints false / default branch
     if(block->next) {
-        fprintf(stdout, "\n");
+        if(block->branch) {
+            fprintf(stdout, "\n%s False", op_code_to_string(block->branch_condition));
+        } else {
+            fprintf(stdout, "\nDefault Next");
+        }
+
         print_block(block->next);
     }
 }
 
 // Prints quad
 void print_quad(quad *q) {
+    // Indents
+    fprintf(stdout, "\t");
+
     // Prints target
     if(q->dest != NULL) {
         fprintf(stdout, "%s = ", node_name_to_string(q->dest));
