@@ -281,6 +281,35 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
         case IDENT_TYPE:
             return node;
 
+        // Ternary Operations
+        case TERNARY_TYPE:;
+            // Creates blocks
+            basic_block *true_block = create_basic_block(NULL);
+            basic_block *false_block = create_basic_block(NULL);
+            basic_block *next_block = create_basic_block(NULL);
+
+            // Links blocks to current block
+            gen_conditional_expr_IR(node->ast_ternary_op.if_expr, true_block, false_block);
+            
+            // Checks if target
+            if(target == NULL) {
+                target = get_temp_node();
+            }
+
+            // Creates quads for true branch
+            set_block(true_block);
+            emit_quad(MOV_OC, -1, get_rvalue(node->ast_ternary_op.then_expr, NULL), NULL, target);
+            link_blocks(NULL, next_block, NONE_OC);
+
+            // Creates quads for false brach
+            set_block(false_block);
+            emit_quad(MOV_OC, -1, get_rvalue(node->ast_ternary_op.else_expr, NULL), NULL, target);
+            link_blocks(NULL, next_block, NONE_OC);
+
+            set_block(next_block);
+
+            return target;
+
         // Binary Operations
         case BINARY_TYPE:;
             astnode *left = get_rvalue(node->ast_binary_op.left_expr, NULL);
@@ -828,7 +857,8 @@ void gen_assignment_IR(astnode *node) {
     astnode *dest = get_lvalue(node->ast_binary_op.left_expr, &mode);
 
     if(mode == DIRECT_MODE) {
-        astnode *rvalue = get_rvalue(node->ast_binary_op.right_expr,dest);
+        astnode *rvalue = get_rvalue(node->ast_binary_op.right_expr, NULL);
+        emit_quad(MOV_OC, -1, rvalue, NULL, dest);
     } else {
         astnode *rvalue = get_rvalue(node->ast_binary_op.right_expr,NULL);
         emit_quad(STORE_OC, -1, rvalue, dest, NULL);
