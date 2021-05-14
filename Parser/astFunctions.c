@@ -738,6 +738,7 @@ astnode *add_to_arr_ptr_chain(astnode *parent_node, int type_to_add) {
 astnode *create_temp_node(int temp_num) {
     astnode *temp_node = allocate_node_mem();
     temp_node->node_type = TEMP_TYPE;
+    temp_node->ast_temp_node.curr_register = -1;  // Enum not accessible here
     temp_node->ast_temp_node.temp_value = NULL;
     
     // Generates a name for the temp node

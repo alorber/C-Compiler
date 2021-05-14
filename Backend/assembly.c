@@ -684,7 +684,8 @@ void init_register() {
 // Allocates a register for node
 astnode *allocate_register(astnode *node) {
     // If variable is already contained in memory, return it
-    if(node != NULL && (node->node_type == TEMP_TYPE || 
+    if(node != NULL && 
+      ((node->node_type == TEMP_TYPE && node->ast_temp_node.curr_register != NONE_REGISTER) || 
        (node->node_type == SYM_ENTRY_TYPE && node->ast_sym_entry.sym_type == VAR_TYPE))) {
         return node;
     }
@@ -696,12 +697,14 @@ astnode *allocate_register(astnode *node) {
             // Set as taken
             register_status[i] = 0;
 
-            // Checks if node exists
-            if(node != NULL) {
-                // TODO
-            }
-            // Create new temp node
+            // Checks if node exists (Assuming temp type)
+            if(node == NULL) {
+                // Creates temp node
+                astnode *temp = get_temp_node();
+            } 
 
+            node->ast_temp_node.curr_register = i;
+            return node;
         }
     }
 
@@ -712,8 +715,13 @@ astnode *allocate_register(astnode *node) {
 // Frees register used by node
 void free_register(astnode *node) {
     // Checks if no register was used
-    // TODO
+    if(node != NULL && 
+      ((node->node_type == TEMP_TYPE && node->ast_temp_node.curr_register != NONE_REGISTER) || 
+       (node->node_type == SYM_ENTRY_TYPE && node->ast_sym_entry.sym_type == VAR_TYPE))) {
+        return;
+    }
 
     // Frees register
-    // TODO
+    register_status[node->ast_temp_node.curr_register] = 1;
+    node->ast_temp_node.curr_register = NONE_REGISTER;
 }

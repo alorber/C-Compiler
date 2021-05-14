@@ -268,6 +268,7 @@ typedef struct astnode_function {
 // Temp node used for IR generation
 typedef struct astnode_temp_node {
     char *name;
+    int curr_register;          // Register that temp is stored in (From enum in assembly.h)
     struct astnode *temp_value; // Can store whatever value needs to be stored
 } astnode_temp_node;
 

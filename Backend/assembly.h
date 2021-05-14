@@ -42,6 +42,7 @@ char *get_string_label();
 
 // Enum of registers
 enum registers {
+    NONE_REGISTER = -1,
     EAX_REGISTER = 0,
     EBX_REGISTER,
     ECX_REGISTER,
