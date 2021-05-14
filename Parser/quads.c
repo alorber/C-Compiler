@@ -92,6 +92,10 @@ void set_block(basic_block *block) {
 
 // Links given block(s) with current basic block
 // Branch is set to the true branch, while next is set to the false branch
+// The op_code will be a conditional op_code - used for assembly generation
+// CMP_OC is set as the op_code to denote the end of the if else block chain 
+//      and return to the "main" block chain.
+// Makes assembly generation easier.
 void link_blocks(basic_block *true_branch, basic_block *false_branch, int op_code) {
     curr_block->next = false_branch;
     curr_block->branch = true_branch;
@@ -902,7 +906,10 @@ void gen_if_stmt_IR(astnode *node) {
     generate_quads(node->ast_if_else.if_body);
 
     // Attaches true block to next block
-    link_blocks(NULL,next_block,NONE_OC);
+    // CMP_OC is set as the op_code to denote the end of the if else blocks 
+    //      and return to the "main" block chain.
+    //      Makes it easier to order blocks correctly.
+    link_blocks(NULL,next_block,CMP_OC);
 
     // Creates quads for false branch
     if(node->ast_if_else.else_body) {
@@ -910,7 +917,7 @@ void gen_if_stmt_IR(astnode *node) {
         generate_quads(node->ast_if_else.else_body);
         
         // Attaches false block to next block
-        link_blocks(NULL,next_block,NONE_OC);
+        link_blocks(NULL,next_block,CMP_OC);
     }
 
     set_block(next_block);

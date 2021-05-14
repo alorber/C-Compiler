@@ -77,7 +77,7 @@ void gen_function_assembly(FILE *out_file, basic_block *function_block) {
     }
 
     // Generates assembly for quads in function
-    gen_block_assembly(out_file, function_block, 0);
+    gen_block_assembly(out_file, function_block, 1);
 
     // Generates assembly for return
     // Checks if explicit return, if not then 0
@@ -127,10 +127,16 @@ int get_local_scope_size(char *fnc_symbol) {
 // Generates assembly for all quads in a function
 // Generates assembly for a basic block and all blocks branching from it
 // Returns last basic block printed in chain (used for conditional branching)
-basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branch) {
+// @Param is_top_level is so function label isn't printed twice
+basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_level) {
     // Checks if block was already printed
     if(block == NULL || block->was_translated) {
         return NULL;
+    }
+
+    // Prints block label (Checks if top level block, so doesn't print fnc label twice)
+    if(is_top_level == 0) {
+        fprintf(out_file, "%s:\n", block->block_label);
     }
 
     // Picks assembly instruction for quad
@@ -143,7 +149,7 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branc
     // Marks as translated
     block->was_translated = 1;
 
-    // Checks for branch (Could check int range, but explicit in case enum changes)
+    // Checks for branch (Could check int range, but explicit in case enum value changes)
     if(block->branch_condition == EQEQ_OC || block->branch_condition == NEQ_OC ||
        block->branch_condition == LT_OC || block->branch_condition == GT_OC ||
        block->branch_condition == LTEQ_OC || block->branch_condition == GT_OC) {
@@ -152,23 +158,18 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branc
         pick_jump_instruction(out_file, block);
 
         // Prints true branch
-        basic_block *true_branch_end = gen_block_assembly(out_file, block->branch, 1);
+        basic_block *true_branch_end = gen_block_assembly(out_file, block->branch, 0);
 
         // If true branch defaults into the false branch (i.e no else statement)
         //    continues with false branch
-        if(true_branch_end != NULL && true_branch_end->branch_condition == NONE /*TODO*/) {
+        if(true_branch_end != NULL && true_branch_end->next == block->next) {
             return gen_block_assembly(out_file, block->next, 0);
         } else {
             // Prints false branch
-            basic_block *false_branch_end = gen_block_assembly(out_file, block->next, 1);
+            basic_block *false_branch_end = gen_block_assembly(out_file, block->next, 0);
 
-            // Checks if true and false branches continue into same block
-            // TODO: I don't think this will work!!!
-            if(true_branch_end != NULL && false_branch_end != NULL && 
-                true_branch_end->next == false_branch_end->next) {
-                // Continues with blocks
-                return gen_block_assembly(out_file, true_branch_end->next, in_branch);
-            }
+            // Continues with blocks
+            return gen_block_assembly(out_file, false_branch_end->next, 0);
         }
     }
     // Checks if next block was already translated
@@ -177,14 +178,17 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branc
         pick_jump_instruction(out_file, block);
         return block;
     }
-    // Checks if next block
-    if(block->next != NULL) {
-        return gen_block_assembly(out_file, block->next, in_branch);
+    // Checks if end of if-else chain and returning to main block chain
+    // The CMP_OC is just an arbitrary value chosen to represent this
+    // Stops here, so blocks can be printed in correct order
+    else if(block->branch_condition == CMP_OC) {
+        return block;
     }
-    // Need to fix
-
-
-
+    // Checks if next block exists
+    else if(block->next != NULL) {
+        return gen_block_assembly(out_file, block->next, 0);
+    }
+    
     return block;
 }
 

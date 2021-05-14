@@ -18,7 +18,9 @@ int get_local_scope_size(char *fnc_symbol);
 
 // Generates assembly for all quads in a function
 // Generates assembly for a basic block and all blocks branching from it
-basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branch);
+// Returns last basic block printed in chain (used for conditional branching)
+// @Param is_top_level is so function label isn't printed twice
+basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_level);
 
 // Given a quad, decides the best assembly instruction(s)
 void pick_instruction(FILE *out_file, quad *curr_quad);

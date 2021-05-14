@@ -110,6 +110,10 @@ void set_block(basic_block *block);
 
 // Links given block(s) with current basic block
 // Branch is set to the true branch, while next is set to the false branch
+// The op_code will be a conditional op_code - used for assembly generation
+// CMP_OC is set as the op_code to denote the end of the if else block chain 
+//      and return to the "main" block chain.
+// Makes assembly generation easier.
 void link_blocks(basic_block *true_branch, basic_block *false_branch, int op_code);
 
 // Generates the quads for a function and stores blocks in linked list
