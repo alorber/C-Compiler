@@ -496,38 +496,38 @@ void pick_jump_instruction(FILE *out_file, basic_block *block) {
     switch(block->branch_condition) {
         case EQEQ_OC:
             // Prints assembly
-            fprintf(out_file, "    jne  %s\n", node_to_assembly(block->branch));
+            fprintf(out_file, "    jne  %s\n", block->branch->block_label);
             break;
 
         case NEQ_OC:
             // Prints assembly
-            fprintf(out_file, "    je  %s\n", node_to_assembly(block->branch));
+            fprintf(out_file, "    je  %s\n", block->branch->block_label);
             break;
             
         case LT_OC:
             // Prints assembly
-            fprintf(out_file, "    jge  %s\n", node_to_assembly(block->branch));
+            fprintf(out_file, "    jge  %s\n", block->branch->block_label);
             break;
 
         case GT_OC:
             // Prints assembly
-            fprintf(out_file, "    jle  %s\n", node_to_assembly(block->branch));
+            fprintf(out_file, "    jle  %s\n", block->branch->block_label);
             break;
             
         case LTEQ_OC:
             // Prints assembly
-            fprintf(out_file, "    jg  %s\n", node_to_assembly(block->branch));
+            fprintf(out_file, "    jg  %s\n", block->branch->block_label);
             break;
             
         case GTEQ_OC:
             // Prints assembly
-            fprintf(out_file, "    jl  %s\n", node_to_assembly(block->branch));
+            fprintf(out_file, "    jl  %s\n", block->branch->block_label);
             break;
             
         // Not conditional operator
         default:
             // Prints assembly
-            fprintf(out_file, "    jmp  %s\n", node_to_assembly(block->next));
+            fprintf(out_file, "    jmp  %s\n", block->branch->block_label);
             break;
     }
 }
@@ -650,7 +650,110 @@ int get_alignment_of(astnode *node) {
 
 // Given node, returns assembly reference
 char *node_to_assembly(astnode *node) {
+    char *node_name = calloc(256, sizeof(char));
 
+    switch(node->node_type) {
+        case TEMP_TYPE:
+            // Checks for register
+            switch(node->ast_temp_node.curr_register) {
+                case NONE_REGISTER:
+                    sprintf(node_name, "No register allocated");
+                    break;
+                case EAX_REGISTER:
+                    sprintf(node_name, "%%eax");
+                    break;
+                case EBX_REGISTER:
+                    sprintf(node_name, "%%ebx");
+                    break;
+                case ECX_REGISTER:
+                    sprintf(node_name, "%%ecx");
+                    break;
+                case EDX_REGISTER:
+                    sprintf(node_name, "%%edx");
+                    break;
+                case EDI_REGISTER:
+                    sprintf(node_name, "%%edi");
+                    break;
+                case ESI_REGISTER:
+                    sprintf(node_name, "%%esi");
+                    break;
+            }
+            break;
+
+        case SYM_ENTRY_TYPE:
+            // Variable
+            if(node->ast_sym_entry.sym_type == VAR_TYPE) {
+                // Checks if global
+                if(node->ast_sym_entry.ident_var.storage_class == EXTERN_SC) {
+                    sprintf(node_name, "%s", node->ast_sym_entry.symbol);
+                }
+                // Local
+                else {
+                    sprintf(node_name, "%d(%%ebp)", node->ast_sym_entry.ident_var.stack_frame_offset);
+                }
+            }
+            break;
+
+        case NUMBER_TYPE:
+            // Checks if signed
+            if(node->ast_number.number.is_signed == SIGNED_TYPE) {
+                switch(node->ast_number.number.size_specifier) {
+                    case INT_TYPE:
+                        sprintf(node_name, "%d", (int) node->ast_number.number.i_value);
+                        break;
+
+                    case FLOAT_TYPE:
+                        sprintf(node_name, "%f", (float) node->ast_number.number.d_value);
+                        break;
+
+                    case DOUBLE_TYPE:
+                        sprintf(node_name, "%f", (double) node->ast_number.number.d_value);
+                        break;
+
+                    case LONG_TYPE:
+                        sprintf(node_name, "%ld", (long) node->ast_number.number.i_value);
+                        break;
+
+                    case LONGLONG_TYPE:
+                        sprintf(node_name, "%lld", (long long) node->ast_number.number.i_value);
+                        break;
+
+                    case LONGDOUBLE_TYPE:
+                        sprintf(node_name, "%Lf",  (long double) node->ast_number.number.d_value);
+                    
+                }
+            } else {
+                switch(node->ast_number.number.size_specifier) {
+                    case INT_TYPE:
+                        sprintf(node_name, "%u", (unsigned int) node->ast_number.number.i_value);
+                        break;
+
+                    case LONG_TYPE:
+                        sprintf(node_name, "%lu", (unsigned long) node->ast_number.number.i_value);
+                        break;
+
+                    case LONGLONG_TYPE:
+                        sprintf(node_name, "%llu", (unsigned long long) node->ast_number.number.i_value);
+                        break;
+                }
+            }
+            break;
+
+        case CHARLIT_TYPE:
+            strcpy(node_name, node->ast_charlit.charlit);
+            break;
+
+        case STRING_TYPE:
+            strcpy(node_name, node->ast_string.string);
+            break;
+
+        case IDENT_TYPE:
+            strcpy(node_name, node->ast_ident.ident);
+            break;
+        
+    }
+
+    return node_name;
 }
 
 // Creates label for string in rodata section
