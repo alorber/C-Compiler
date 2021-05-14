@@ -29,4 +29,30 @@ void pick_jump_instruction(FILE *out_file, basic_block *block);
 // Gets alignment of variable
 int get_alignment_of(astnode *node);
 
+// Register Functions
+// ------------------
+
+// Enum of registers
+enum registers {
+    EAX_REGISTER = 0,
+    EBX_REGISTER,
+    ECX_REGISTER,
+    EDX_REGISTER,
+    EDI_REGISTER,
+    ESI_REGISTER,
+    NUM_REGISTERS
+};
+
+// Global array that stores taken / free status of each register
+int *register_status;
+
+// Initializes registers
+void init_register();
+
+// Allocates a register for node
+astnode *allocate_register(astnode *node);
+
+// Frees register used by node
+void free_register(astnode *node);
+
 #endif // ASSEMBLY_H

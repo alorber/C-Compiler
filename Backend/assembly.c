@@ -190,7 +190,9 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branc
 
 // Given a quad, decides the best assembly instruction(s)
 void pick_instruction(FILE *out_file, quad *curr_quad) {
-
+    // Checks if destination
+    // If yes, reserve register
+    
 }
 
 // Prints assembly for block jump
@@ -313,4 +315,58 @@ int get_alignment_of(astnode *node) {
 
     // Returns alignment
     return alignment_size;
+}
+
+// Register Functions
+// -------------------
+
+// Initializes registers
+void init_register() {
+    // Checks for errors
+    if((register_status = malloc(sizeof(int) * NUM_REGISTERS)) == NULL) {
+        fprintf(stderr, "ERROR: Unable to allocate memory for register array.\n");
+        exit(-1);
+    }
+
+    // Sets all registers to available
+    for(int i = 0; i < NUM_REGISTERS; i++) {
+        register_status[i] = 1;
+    }
+}
+
+// Allocates a register for node
+astnode *allocate_register(astnode *node) {
+    // If variable is already contained in memory, return it
+    if(node != NULL && (node->node_type == TEMP_TYPE || 
+       (node->node_type == SYM_ENTRY_TYPE && node->ast_sym_entry.sym_type == VAR_TYPE))) {
+        return node;
+    }
+
+    // Otherwise, find open register
+    for(int i = 0; i < NUM_REGISTERS; i++) {
+        // Checks if register is free
+        if(register_status[i] == 1) {
+            // Set as taken
+            register_status[i] = 0;
+
+            // Checks if node exists
+            if(node != NULL) {
+                // TODO
+            }
+            // Create new temp node
+
+        }
+    }
+
+    // No free registers
+    return NULL;
+}
+
+// Frees register used by node
+void free_register(astnode *node) {
+    // Checks if no register was used
+    // TODO
+
+    // Frees register
+    // TODO
 }
