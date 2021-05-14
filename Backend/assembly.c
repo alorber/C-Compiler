@@ -1,10 +1,13 @@
 // Andrew Lorber
 // Compilers - Assembly Generator
 
+// All assembly is x86 - 32 Bit
+
 #include "../Parser/quads.h"
 #include "assembly.h"
 #include "../Parser/symbol_table.h"
 
+extern basic_block_list *block_list;
 
 // Generates assembly of file
 // Assumes input of output file name
@@ -15,13 +18,20 @@ void gen_assembly(char *out_file_name) {
     fprintf(out_file, "    .file \"%s\"\n", out_file_name);
 
     // Declares global variables in comm section
-    // Assuming no initialized variables
+    // Assuming no initialized variables (Not supported)
     gen_global_assembly(out_file);
 
     // Starts text section
+    fprintf(out_file, "    .text\n");
 
     // Loops through functions
+    basic_block_list_entry *curr_function_block = block_list->head;
+    while(curr_function_block != NULL) {
         // Generates assembly for function
+        gen_function_assembly(out_file, curr_function_block);
+
+        curr_function_block = curr_function_block->next;
+    }
 }
 
 // Generates assembly for global variables
@@ -50,30 +60,46 @@ void gen_global_assembly(FILE *out_file) {
 }
 
 // Generates assembly for functions
-void gen_function_assembly() {
+void gen_function_assembly(FILE *out_file, basic_block *function_block) {
     // Prints assembly for function variable
+    fprintf(out_file, "    .globl  %s\n", function_block->block_label);
+    fprintf(out_file, "    .type   %s, @function\n", function_block->block_label);
+    fprintf(out_file, "%s:\n", function_block->block_label);
     
     // Sets up stack frame
+    fprintf(out_file, "    pushl  %%ebp\n");
+    fprintf(out_file, "    movl  %%esp, %%ebp\n");
 
     // Reserves space for local variables
+    int local_var_size = get_local_scope_size();
+    if(local_var_size > 0) {
+        fprintf(out_file, "    subl  $%d, %esp\n", local_var_size);
+    }
 
     // Generates assembly for quads in function
+    gen_block_assembly(function_block);
 
     // Generates assembly for return
     // Checks if explicit return, if not then 0
 
     // Prints size of function
+    fprintf(out_file, "    .size  %s, .-%s\n", function_block->block_label, function_block->block_label);
 
 }
 
 // Generates assembly for all quads in a function
 // Generates assembly for a basic block and all blocks branching from it
-void gen_block_assembly() {
+void gen_block_assembly(basic_block *block) {
 
 }
 
 // Given a quad, decides the best assembly instruction(s)
 void pick_instruction() {
+
+}
+
+// Gets total size of local variables of function
+int get_local_scope_size() {
 
 }
 
