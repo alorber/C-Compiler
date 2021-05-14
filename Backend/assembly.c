@@ -196,6 +196,42 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
         allocate_register(curr_quad->dest);
     }
 
+    // Checks if either source is a string
+    if(curr_quad->src1->node_type == STRING_TYPE) {
+        // Enters rodata section
+        fprintf(out_file, "    .rodata\n");
+
+        // Gets label for string
+        char *string_label = get_string_label();
+
+        // Prints assembly
+        fprintf(out_file, "%s:\n", string_label);
+        fprintf(out_file, "    .string  \"%s\"\n", curr_quad->src1->ast_string.string);
+
+        // Changes src -> string memory location
+        astnode *temp_reg = allocate_register(NULL);
+        fprintf(out_file, ".data\n");
+        fprintf(out_file, "    leal  %s, %s\n", string_label, node_to_assembly(temp_reg));
+        curr_quad->src1 = temp_reg;
+    }
+    if(curr_quad->src2->node_type == STRING_TYPE) {
+        // Enters rodata section
+        fprintf(out_file, "    .rodata\n");
+
+        // Gets label for string
+        char *string_label = get_string_label();
+
+        // Prints assembly
+        fprintf(out_file, "%s:\n", string_label);
+        fprintf(out_file, "    .string  \"%s\"\n", curr_quad->src2->ast_string.string);
+
+        // Changes src -> string memory location
+        astnode *temp_reg = allocate_register(NULL);
+        fprintf(out_file, ".data\n");
+        fprintf(out_file, "    leal  %s, %s\n", string_label, node_to_assembly(temp_reg));
+        curr_quad->src2 = temp_reg;
+    }
+
     // Checks op code
     switch(curr_quad->op_code) {
         // Addressing & Assigning
@@ -611,6 +647,17 @@ int get_alignment_of(astnode *node) {
 // Given node, returns assembly reference
 char *node_to_assembly(astnode *node) {
 
+}
+
+// Creates label for string in rodata section
+char *get_string_label() {
+    static int num_strings;  // Number of labels created (Used for naming)
+
+    // Generates label
+    char *string_label = calloc(256, sizeof(char));
+    sprintf(string_label, ".LC%d", num_strings++);
+
+    return string_label;
 }
 
 // Register Functions

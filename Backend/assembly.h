@@ -32,6 +32,9 @@ int get_alignment_of(astnode *node);
 // Given node, returns assembly reference
 char *node_to_assembly(astnode *node);
 
+// Creates label for string in rodata section
+char *get_string_label();
+
 // Register Functions
 // ------------------
 
