@@ -77,7 +77,7 @@ void gen_function_assembly(FILE *out_file, basic_block *function_block) {
     }
 
     // Generates assembly for quads in function
-    gen_block_assembly(function_block);
+    gen_block_assembly(out_file, function_block, 0);
 
     // Generates assembly for return
     // Checks if explicit return, if not then 0
@@ -126,12 +126,76 @@ int get_local_scope_size(char *fnc_symbol) {
 
 // Generates assembly for all quads in a function
 // Generates assembly for a basic block and all blocks branching from it
-void gen_block_assembly(basic_block *block) {
+// Returns last basic block printed in chain (used for conditional branching)
+basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branch) {
+    // Checks if block was already printed
+    if(block == NULL || block->was_translated) {
+        return NULL;
+    }
 
+    // Picks assembly instruction for quad
+    quad_list_entry *curr_quad = block->quad_list;
+    while(curr_quad) {
+        pick_instruction(curr_quad->quad, out_file);
+        curr_quad = curr_quad->next;
+    }
+
+    // Marks as translated
+    block->was_translated = 1;
+
+    // Checks for branch (Could check int range, but explicit in case enum changes)
+    if(block->branch_condition == EQEQ_OC || block->branch_condition == NEQ_OC ||
+       block->branch_condition == LT_OC || block->branch_condition == GT_OC ||
+       block->branch_condition == LTEQ_OC || block->branch_condition == GT_OC) {
+
+        // Prints assembly for branch jump
+        pick_jump_instruction(out_file, block);
+
+        // Prints true branch
+        basic_block *true_branch_end = gen_block_assembly(out_file, block->branch, 1);
+
+        // If true branch defaults into the false branch (i.e no else statement)
+        //    continues with false branch
+        if(true_branch_end != NULL && true_branch_end->branch_condition == NONE /*TODO*/) {
+            return gen_block_assembly(out_file, block->next, 0);
+        } else {
+            // Prints false branch
+            basic_block *false_branch_end = gen_block_assembly(out_file, block->next, 1);
+
+            // Checks if true and false branches continue into same block
+            // TODO: I don't think this will work!!!
+            if(true_branch_end != NULL && false_branch_end != NULL && 
+                true_branch_end->next == false_branch_end->next) {
+                // Continues with blocks
+                return gen_block_assembly(out_file, true_branch_end->next, in_branch);
+            }
+        }
+    }
+    // Checks if next block was already translated
+    else if(block->next->was_translated) {
+        // Prints jump assembly
+        pick_jump_instruction(out_file, block);
+        return block;
+    }
+    // Checks if next block
+    if(block->next != NULL) {
+        return gen_block_assembly(out_file, block->next, in_branch);
+    }
+    // Need to fix
+
+
+
+    return block;
 }
 
 // Given a quad, decides the best assembly instruction(s)
-void pick_instruction() {
+void pick_instruction(FILE *out_file, quad *curr_quad) {
+
+}
+
+// Prints assembly for block jump
+// Will either get a conditional jump or a jump to a block already translated
+void pick_jump_instruction(FILE *out_file, basic_block *block) {
 
 }
 

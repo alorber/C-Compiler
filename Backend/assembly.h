@@ -18,10 +18,13 @@ int get_local_scope_size(char *fnc_symbol);
 
 // Generates assembly for all quads in a function
 // Generates assembly for a basic block and all blocks branching from it
-void gen_block_assembly(basic_block *block);
+basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branch);
 
 // Given a quad, decides the best assembly instruction(s)
-void pick_instruction();
+void pick_instruction(FILE *out_file, quad *curr_quad);
+
+// Prints assembly for block jump
+void pick_jump_instruction(FILE *out_file, basic_block *block);
 
 // Gets alignment of variable
 int get_alignment_of(astnode *node);

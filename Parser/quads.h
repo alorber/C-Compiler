@@ -17,6 +17,7 @@ typedef struct basic_block {
     struct basic_block *next, *branch;    // Branch = branch on true condition
     int branch_condition;                 // Type of comparator (from op_codes enum below)
     int was_printed;                      // Used when printing blocks, so no endless loops
+    int was_translated;                   // Used when writing assembly, so no endless loops
 } basic_block;
 
 // Entry in linked list of basic blocks
