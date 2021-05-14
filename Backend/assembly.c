@@ -192,13 +192,304 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int in_branc
 void pick_instruction(FILE *out_file, quad *curr_quad) {
     // Checks if destination
     // If yes, reserve register
-    
+    if(curr_quad->dest != NULL) {
+        allocate_register(curr_quad->dest);
+    }
+
+    // Checks op code
+    switch(curr_quad->op_code) {
+        // Addressing & Assigning
+        case LOAD_OC:
+            // Prints assembly
+            fprintf(out_file, "    movl  (%s), %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->src1));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->dest));
+
+            break;
+
+        case STORE_OC:
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, (%s)\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->src2));
+
+            break;
+
+        case LEA_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    leal  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->src1));
+        
+            // Frees temp register
+            free_register(temp_reg);
+            
+            break;
+
+        case MOV_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        // Arithmetic Operations
+        case ADD_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    addl  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        case SUB_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    subl  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        case MUL_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    imull  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        case DIV_OC:
+            // Saves %eax
+            fprintf(out_file, "    pushl %%eax\n");
+            // src1 -> %eax
+            fprintf(out_file, "    movl  %s, %%eax\n", node_to_assembly(curr_quad->src1));
+
+            // Saves %edx
+            fprintf(out_file, "    pushl %%edx\n");
+            // Zeros out %edx
+            fprintf(out_file, "    xor %%edx, %%edx\n");
+
+            // Divides
+            fprintf(out_file, "    idiv  %s\n", node_to_assembly(curr_quad->src2));
+            fprintf(out_file, "    movl  %%eax, %s\n", node_to_assembly(curr_quad->dest));
+            
+            // Restores registers
+            fprintf(out_file, "    popl  %%edx\n");
+            fprintf(out_file, "    popl  %%eax\n");
+
+            break;
+
+        case MOD_OC:
+            // Saves %eax
+            fprintf(out_file, "    pushl %%eax\n");
+            // src1 -> %eax
+            fprintf(out_file, "    movl  %s, %%eax\n", node_to_assembly(curr_quad->src1));
+
+            // Saves %edx
+            fprintf(out_file, "    pushl %%edx\n");
+            // Zeros out %edx
+            fprintf(out_file, "    xor %%edx, %%edx\n");
+
+            // Divides
+            fprintf(out_file, "    idiv  %s\n", node_to_assembly(curr_quad->src2));
+            fprintf(out_file, "    movl  %%edx, %s\n", node_to_assembly(curr_quad->dest));
+            
+            // Restores registers
+            fprintf(out_file, "    popl  %%edx\n");
+            fprintf(out_file, "    popl  %%eax\n");
+
+            break;
+
+
+        // Bitwise Operators
+        case AND_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    andl  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        case OR_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    orl  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        case XOR_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    xorl  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        case SHL_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    shl  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        case SHR_OC:
+            // Gets temp register
+            astnode *temp_reg = allocate_register(NULL);
+
+            // Prints assembly
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    shr  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            
+            // Frees temp register
+            free_register(temp_reg);
+
+            break;
+
+        // Comparison Operators
+        case CMP_OC:
+            // Prints assembly
+            fprintf(out_file, "    cmpl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->src2));
+
+            break;
+
+        // Unary Operators
+        case NOT_OC:
+            // Prints assembly
+            fprintf(out_file, "    notl  %s, %s\n", node_to_assembly(curr_quad->src1));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->dest));
+
+            break;
+
+        case NEG_OC:
+            // Prints assembly
+            fprintf(out_file, "    negl  %s, %s\n", node_to_assembly(curr_quad->src1));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->dest));
+
+            break;
+
+        case COMPL_OC:
+            // Prints assembly
+            fprintf(out_file, "    notl  %s, %s\n", node_to_assembly(curr_quad->src1));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->dest));
+
+            break;
+
+        // Function Operators
+        case RETURN_OC:
+            // Checks if something to return
+            if(curr_quad->src1 != NULL) {
+                // Sets return value
+                fprintf(out_file, "    movl  %s, %%eax\n", node_to_assembly(curr_quad->src1));
+                // Resets stack frame
+                fprintf(out_file, "    leave\n");
+                // Returns
+                fprintf(out_file, "    ret\n");
+            }
+            
+            break;
+
+        case ARGBEGIN_OC:
+
+        case ARG_OC:
+
+        case CALL_OC:
+
+
+    }
 }
 
 // Prints assembly for block jump
 // Will either get a conditional jump or a jump to a block already translated
 void pick_jump_instruction(FILE *out_file, basic_block *block) {
+    // Checks if comparison operator
+    // Applies conditional inversion if possible
+    switch(block->branch_condition) {
+        case EQEQ_OC:
+            // Prints assembly
+            fprintf(out_file, "    jne  %s\n", node_to_assembly(block->branch));
+            break;
 
+        case NEQ_OC:
+            // Prints assembly
+            fprintf(out_file, "    je  %s\n", node_to_assembly(block->branch));
+            break;
+            
+        case LT_OC:
+            // Prints assembly
+            fprintf(out_file, "    jge  %s\n", node_to_assembly(block->branch));
+            break;
+
+        case GT_OC:
+            // Prints assembly
+            fprintf(out_file, "    jle  %s\n", node_to_assembly(block->branch));
+            break;
+            
+        case LTEQ_OC:
+            // Prints assembly
+            fprintf(out_file, "    jg  %s\n", node_to_assembly(block->branch));
+            break;
+            
+        case GTEQ_OC:
+            // Prints assembly
+            fprintf(out_file, "    jl  %s\n", node_to_assembly(block->branch));
+            break;
+            
+        // Not conditional operator
+        default:
+            // Prints assembly
+            fprintf(out_file, "    jmp  %s\n", node_to_assembly(block->next));
+            break;
+    }
 }
 
 // Gets alignment of variable
@@ -315,6 +606,11 @@ int get_alignment_of(astnode *node) {
 
     // Returns alignment
     return alignment_size;
+}
+
+// Given node, returns assembly reference
+char *node_to_assembly(astnode *node) {
+
 }
 
 // Register Functions

@@ -29,6 +29,9 @@ void pick_jump_instruction(FILE *out_file, basic_block *block);
 // Gets alignment of variable
 int get_alignment_of(astnode *node);
 
+// Given node, returns assembly reference
+char *node_to_assembly(astnode *node);
+
 // Register Functions
 // ------------------
 
