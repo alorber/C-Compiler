@@ -272,6 +272,17 @@ scope_entry *get_inner_scope() {
     return program_stack->innermost_scope;
 }
 
+// Returns outermost / file scope
+scope_entry *get_global_scope() {
+    // Should always be true, but checks anyways
+    if(program_stack->outermost_scope->scope == FILE_SCOPE) {
+        return program_stack->outermost_scope;
+    }
+
+    fprintf(stderr, "ERROR: No global scope found.\n");
+    return NULL;
+}
+
 // Searches entire scope stack for symbol, inner --> outer
 astnode *search_scope_stack(char *symbol, int symbol_namespace) {
     astnode *symbol_node;

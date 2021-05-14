@@ -101,8 +101,11 @@ void create_new_scope(int scope_type);
 // Deletes innermost scope
 void delete_inner_scope();
 
-// Returns innermost /  current scope
+// Returns innermost / current scope
 scope_entry *get_inner_scope();
+
+// Returns outermost / file scope
+scope_entry *get_global_scope();
 
 // Searches entire scope stack for symbol, inner --> outer
 struct astnode *search_scope_stack(char *symbol, int symbol_namespace);

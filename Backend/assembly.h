@@ -20,4 +20,7 @@ void gen_block_assembly();
 // Given a quad, decides the best assembly instruction(s)
 void pick_instruction();
 
+// Gets alignment of variable
+int get_alignment_of(astnode *node);
+
 #endif // ASSEMBLY_H

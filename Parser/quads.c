@@ -692,10 +692,10 @@ astnode *get_size_of(astnode *node) {
         INT_SIZE = 4,
         FLOAT_SIZE = 4,
         DOUBLE_SIZE = 8,
-        LONG_SIZE = 8,
+        LONG_SIZE = 4,
         LONGLONG_SIZE = 8,
-        POINTER_SIZE = 8,
-        LONGDOUBLE_SIZE = 16
+        POINTER_SIZE = 4,
+        LONGDOUBLE_SIZE = 12
     };
 
     // If variable, get type
