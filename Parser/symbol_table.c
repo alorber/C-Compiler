@@ -245,20 +245,29 @@ void create_new_scope(int scope_type) {
 }
 
 // Deletes innermost scope
-void delete_inner_scope() {
+// For compound blocks that store the reference in the AST, only want to do
+//  a soft delete - change innermost scope, but don't free any memory
+void delete_inner_scope(int hard_delete) {
     // Checks for empty stack
     if(program_stack->innermost_scope == NULL) {
         // ERROR - Trying to delete empty stack
+        fprintf(stderr, "ERROR: Trying to delete empty stack\n");
     }
 
-    // Frees symbol tables of namespaces
-    for(int i = 0; i < 3; i++) {
-        free(program_stack->innermost_scope->sym_tables[i]);
-    }
-
-    // Updates new inner scope and frees old one
+    // Stores new inner scope
     scope_entry *new_inner_scope = program_stack->innermost_scope->scope_up;
-    free(program_stack->innermost_scope);
+
+    if(hard_delete) {
+        // Frees symbol tables of namespaces
+        for(int i = 0; i < 3; i++) {
+            free(program_stack->innermost_scope->sym_tables[i]);
+        }
+
+        // frees old inner scope
+        free(program_stack->innermost_scope);
+    }
+    
+    // Updates inner scope
     program_stack->innermost_scope = new_inner_scope;
 
     // Checks if table now empty

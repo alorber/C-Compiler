@@ -428,18 +428,16 @@ fnc_def: decl_specifier declarator  {/* Checks if function is in symbol table */
                                      print_ast($<node>$,0,0);
                                     }
          fnc_block                   {$$ = $<node>3;
-                                     $$->ast_sym_entry.sym_node = $4;
+                                      $$->ast_sym_entry.sym_node = $4;
                                     }
        ;
 
 fnc_block: '{'                       {/* Creates new scope */
                                      create_new_scope(FUNCTION_SCOPE);} 
            block_item_list '}'      {$$ = create_compound_stmt_node($3,get_inner_scope());
-                                     /* Prints */
-                                     /* fprintf(stdout,"AST DUMP FOR FUNCTION:\n");*/
                                      print_ast($3,0,0);
                                      /* Removes inner scope */
-                                     delete_inner_scope();
+                                     delete_inner_scope(0);
                                     }
         ;
 
@@ -463,11 +461,8 @@ compound_stmt: '{' '}'                  {$$ = create_compound_stmt_node(NULL,NUL
              | '{'                      {/* Creates new scope */
                                          create_new_scope(BLOCK_SCOPE);} 
                 block_item_list '}'     {$$ = create_compound_stmt_node($3,get_inner_scope());
-                                         /* Prints */
-                                         /*fprintf(stdout,"AST DUMP FOR BLOCK:\n");
-                                         print_ast($3,0,0); */
                                          /* Removes inner scope */
-                                         delete_inner_scope();
+                                         delete_inner_scope(0);
                                         }
              ;
 

@@ -55,7 +55,7 @@ void gen_global_assembly(FILE *out_file) {
             fprintf(out_file, "    .comm    %s,%d,%d\n", 
                     curr_sym_entry->node->ast_sym_entry.symbol, var_size->ast_number.number.i_value, var_alignment);
         }
-       curr_sym_entry = curr_sym_entry->next;
+        curr_sym_entry = curr_sym_entry->next;
     }
 }
 
@@ -71,7 +71,7 @@ void gen_function_assembly(FILE *out_file, basic_block *function_block) {
     fprintf(out_file, "    movl  %%esp, %%ebp\n");
 
     // Reserves space for local variables
-    int local_var_size = get_local_scope_size();
+    int local_var_size = get_local_scope_size(function_block->block_label);
     if(local_var_size > 0) {
         fprintf(out_file, "    subl  $%d, %esp\n", local_var_size);
     }
@@ -87,6 +87,43 @@ void gen_function_assembly(FILE *out_file, basic_block *function_block) {
 
 }
 
+// Gets total size of local variables of function
+// Sets offset of each variable within stack
+int get_local_scope_size(char *fnc_symbol) {
+    // Gets symbol table entry for function
+    astnode *fnc_sym_entry;
+
+    // Checks for errors
+    if((fnc_sym_entry = search_scope_stack(fnc_symbol, OTHER_NS)) == NULL) {
+        fprintf(stderr, "ERROR: Unable to find function in symbol table.\n");
+        exit(-1);
+    }
+
+    // Gets symbol table for function
+    symbol_table **sym_table = fnc_sym_entry->ast_sym_entry.sym_node->ast_compound_stmt.block_scope->sym_tables[OTHER_NS];
+
+    // Gets members of OTHER_NAMESPACE
+    astnode *sym_entries = get_table_members(sym_table[OTHER_NS]);
+
+    // Loops through symbol table entries
+    astnode_list_entry *curr_sym_entry = &(sym_entries->ast_node_list_head);
+    long int total_offset = 0;
+    while(curr_sym_entry != NULL) {
+        // Checks if variable found
+        if(curr_sym_entry->node->ast_sym_entry.sym_type == VAR_TYPE) {
+            // Calculates the size
+            astnode *var_size = get_size_of(curr_sym_entry->node);
+
+            // Updates Offset
+            total_offset += var_size->ast_number.number.i_value;
+            curr_sym_entry->node->ast_sym_entry.ident_var.stack_frame_offset = -total_offset;
+        }
+        curr_sym_entry = curr_sym_entry->next;
+    }
+
+    return total_offset;
+}
+
 // Generates assembly for all quads in a function
 // Generates assembly for a basic block and all blocks branching from it
 void gen_block_assembly(basic_block *block) {
@@ -95,11 +132,6 @@ void gen_block_assembly(basic_block *block) {
 
 // Given a quad, decides the best assembly instruction(s)
 void pick_instruction() {
-
-}
-
-// Gets total size of local variables of function
-int get_local_scope_size() {
 
 }
 
