@@ -1,16 +1,19 @@
 # Andrew Lorber
 # Compilers - Parser Make File
 
-parser: parser.tab.o quads.o symbol_table.o astFunctions.o lexer.yy.o lexerFunctions.o
-		gcc --std=gnu99 -o parser parser.tab.o quads.o symbol_table.o astFunctions.o ../Lexer/lexer.yy.o ../Lexer/lexerFunctions.o
+parser: parser.tab.o assembly.o quads.o symbol_table.o astFunctions.o lexer.yy.o lexerFunctions.o
+		gcc --std=gnu99 -o parser parser.tab.o ../Backend/assembly.o quads.o symbol_table.o astFunctions.o ../Lexer/lexer.yy.o ../Lexer/lexerFunctions.o
 
 parser.tab.o: parser.y
 		# For debugging:
-		# bison --debug -vd parser.y
-		bison -vd parser.y
+		bison --debug -vd parser.y
+		# bison -vd parser.y
 		gcc --std=gnu99 -c -o parser.tab.o parser.tab.c
 
 parser.tab.h: parser.tab.o
+
+assembly.o: ../Backend/assembly.h ../Backend/assembly.c
+		gcc -std=gnu99 -c -o ../Backend/assembly.o ../Backend/assembly.c
 
 quads.o: astFunctions.o quads.h quads.c
 		gcc --std=gnu99 -c -o quads.o quads.c
@@ -35,3 +38,4 @@ lexerFunctions.o: ../Lexer/lexerFunctions.h ../Lexer/lexerFunctions.c
 clean:
 		rm -f ../Lexer/lexerFunctions.o ../Lexer/lexer.yy.c ../Lexer/lexer.yy.o ../Lexer/lexer
 		rm -f quads.o symbol_table.o astFunctions.o parser.tab.h parser.tab.c parser.tab.o parser parser.output
+		rm -f ../Backend/assembly.o
