@@ -14,7 +14,6 @@ extern basic_block_list *block_list;
 void gen_assembly(char *out_file_name) {
     // Creates assembly file for output
     FILE *out_file = fopen(out_file_name, "w+");
-    out_file = stderr;
 
     fprintf(out_file, "    .file \"%s\"\n", out_file_name);
 

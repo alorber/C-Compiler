@@ -260,13 +260,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
         // Variables
         case SYM_ENTRY_TYPE:
-            // Scalar Variable
-            if(node->ast_sym_entry.sym_type == VAR_TYPE 
-            && node->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) {
-                return node;
-            }
-
-            // Array Varible
+            // Array Variable
             if(node->ast_sym_entry.sym_type == VAR_TYPE 
             && node->ast_sym_entry.sym_node->node_type == ARRAY_TYPE) {
                 // Checks if target
@@ -276,6 +270,10 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
 
                 emit_quad(LEA_OC, -1, node, NULL, target);
                 return target;
+            }
+            // Other Variable
+            if(node->ast_sym_entry.sym_type == VAR_TYPE) {
+                return node;
             }
             break;
 
