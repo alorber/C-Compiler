@@ -86,7 +86,7 @@ void gen_function_assembly(FILE *out_file, basic_block *function_block) {
         // Sets return value
             fprintf(out_file, "    movl  $0, %%eax\n");
             // Resets stack frame
-            fprintf(out_file, "    popl   %%ebp\n");
+            fprintf(out_file, "    leave\n");
             // Returns
             fprintf(out_file, "    ret\n");
     }
@@ -117,15 +117,43 @@ int get_local_scope_size(char *fnc_symbol) {
     // Loops through symbol table entries
     astnode_list_entry *curr_sym_entry = &(sym_entries->ast_node_list_head);
     long int total_offset = 0;
+    // while(curr_sym_entry != NULL) {
+    //     // Checks if variable found
+    //     if(curr_sym_entry->node->ast_sym_entry.sym_type == VAR_TYPE) {
+    //         // Calculates the size
+    //         astnode *var_size = get_size_of(curr_sym_entry->node);
+
+    //         // Updates Offset
+    //         total_offset += var_size->ast_number.number.i_value;
+    //         curr_sym_entry->node->ast_sym_entry.ident_var.stack_frame_offset = -total_offset;
+    //     }
+    //     curr_sym_entry = curr_sym_entry->next;
+    // }
+    // Yes, this takes twice as long
+    // But the one above causes a seg fault and for some reason the one below works
     while(curr_sym_entry != NULL) {
         // Checks if variable found
         if(curr_sym_entry->node->ast_sym_entry.sym_type == VAR_TYPE) {
             // Calculates the size
             astnode *var_size = get_size_of(curr_sym_entry->node);
 
-            // Updates Offset
+            // Updates Total Offset
             total_offset += var_size->ast_number.number.i_value;
-            curr_sym_entry->node->ast_sym_entry.ident_var.stack_frame_offset = -total_offset;
+        }
+        curr_sym_entry = curr_sym_entry->next;
+    }
+
+    long int offset = total_offset;
+    curr_sym_entry = &(sym_entries->ast_node_list_head);
+    while(curr_sym_entry != NULL) {
+        // Checks if variable found
+        if(curr_sym_entry->node->ast_sym_entry.sym_type == VAR_TYPE) {
+            // Calculates the size
+            astnode *var_size = get_size_of(curr_sym_entry->node);
+
+            // Updates Variable Offset
+            curr_sym_entry->node->ast_sym_entry.ident_var.stack_frame_offset = -offset;
+            offset -= var_size->ast_number.number.i_value;
         }
         curr_sym_entry = curr_sym_entry->next;
     }
@@ -488,7 +516,7 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
                 // Sets return value
                 fprintf(out_file, "    movl  %s, %%eax\n", node_to_assembly(curr_quad->src1));
                 // Resets stack frame
-                fprintf(out_file, "    popl   %%ebp\n");
+                fprintf(out_file, "    leave\n");
                 // Returns
                 fprintf(out_file, "    ret\n");
             }
