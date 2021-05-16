@@ -56,7 +56,7 @@ enum registers {
 int *register_status;
 
 // Initializes registers
-void init_register();
+void init_registers();
 
 // Allocates a register for node
 astnode *allocate_register(astnode *node);

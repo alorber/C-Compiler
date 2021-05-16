@@ -13,7 +13,8 @@ extern basic_block_list *block_list;
 // Assumes input of output file name
 void gen_assembly(char *out_file_name) {
     // Creates assembly file for output
-    FILE *out_file = fopen(out_file_name, 'w+');
+    FILE *out_file = fopen(out_file_name, "w+");
+    out_file = stderr;
 
     fprintf(out_file, "    .file \"%s\"\n", out_file_name);
 
@@ -28,7 +29,7 @@ void gen_assembly(char *out_file_name) {
     basic_block_list_entry *curr_function_block = block_list->head;
     while(curr_function_block != NULL) {
         // Generates assembly for function
-        gen_function_assembly(out_file, curr_function_block);
+        gen_function_assembly(out_file, curr_function_block->bb);
 
         curr_function_block = curr_function_block->next;
     }
@@ -52,7 +53,7 @@ void gen_global_assembly(FILE *out_file) {
             int var_alignment = get_alignment_of(curr_sym_entry->node);
 
             // Prints to output
-            fprintf(out_file, "    .comm    %s,%d,%d\n", 
+            fprintf(out_file, "    .comm    %s,%lld,%d\n", 
                     curr_sym_entry->node->ast_sym_entry.symbol, var_size->ast_number.number.i_value, var_alignment);
         }
         curr_sym_entry = curr_sym_entry->next;
@@ -73,7 +74,7 @@ void gen_function_assembly(FILE *out_file, basic_block *function_block) {
     // Reserves space for local variables
     int local_var_size = get_local_scope_size(function_block->block_label);
     if(local_var_size > 0) {
-        fprintf(out_file, "    subl  $%d, %esp\n", local_var_size);
+        fprintf(out_file, "    subl  $%d, %%esp\n", local_var_size);
     }
 
     // Generates assembly for quads in function
@@ -100,10 +101,10 @@ int get_local_scope_size(char *fnc_symbol) {
     }
 
     // Gets symbol table for function
-    symbol_table **sym_table = fnc_sym_entry->ast_sym_entry.sym_node->ast_compound_stmt.block_scope->sym_tables[OTHER_NS];
+    symbol_table *sym_table = fnc_sym_entry->ast_sym_entry.sym_node->ast_compound_stmt.block_scope->sym_tables[OTHER_NS];
 
     // Gets members of OTHER_NAMESPACE
-    astnode *sym_entries = get_table_members(sym_table[OTHER_NS]);
+    astnode *sym_entries = get_table_members(sym_table);
 
     // Loops through symbol table entries
     astnode_list_entry *curr_sym_entry = &(sym_entries->ast_node_list_head);
@@ -142,7 +143,7 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_l
     // Picks assembly instruction for quad
     quad_list_entry *curr_quad = block->quad_list;
     while(curr_quad) {
-        pick_instruction(curr_quad->quad, out_file);
+        pick_instruction(out_file, curr_quad->quad);
         curr_quad = curr_quad->next;
     }
 
@@ -172,24 +173,26 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_l
             return gen_block_assembly(out_file, false_branch_end->next, 0);
         }
     }
+    // If no next, block return
+    else if(block->next == NULL) {
+        return block;
+    }
     // Checks if next block was already translated
     else if(block->next->was_translated) {
         // Prints jump assembly
         pick_jump_instruction(out_file, block);
         return block;
     }
-    // Checks if end of if-else chain and returning to main block chain
-    // The CMP_OC is just an arbitrary value chosen to represent this
-    // Stops here, so blocks can be printed in correct order
+    // Checks if end of if-else chain and returning to main block chain.
+    // The CMP_OC is just an arbitrary value chosen to represent this.
+    // Stops here, so blocks can be printed in correct order.
     else if(block->branch_condition == CMP_OC) {
         return block;
     }
-    // Checks if next block exists
-    else if(block->next != NULL) {
+    // Otherwise, continue with blocks
+    else {
         return gen_block_assembly(out_file, block->next, 0);
     }
-    
-    return block;
 }
 
 // Given a quad, decides the best assembly instruction(s)
@@ -201,7 +204,7 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
     }
 
     // Checks if either source is a string
-    if(curr_quad->src1->node_type == STRING_TYPE) {
+    if(curr_quad->src1 != NULL && curr_quad->src1->node_type == STRING_TYPE) {
         // Enters rodata section
         fprintf(out_file, "    .rodata\n");
 
@@ -218,7 +221,7 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
         fprintf(out_file, "    leal  %s, %s\n", string_label, node_to_assembly(temp_reg));
         curr_quad->src1 = temp_reg;
     }
-    if(curr_quad->src2->node_type == STRING_TYPE) {
+    if(curr_quad->src2 != NULL && curr_quad->src2->node_type == STRING_TYPE) {
         // Enters rodata section
         fprintf(out_file, "    .rodata\n");
 
@@ -238,6 +241,9 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
     // Checks op code
     switch(curr_quad->op_code) {
+        // astnode for temporary register
+        astnode *temp_reg;
+
         // Addressing & Assigning
         case LOAD_OC:
             // Prints assembly
@@ -249,12 +255,11 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
         case STORE_OC:
             // Prints assembly
             fprintf(out_file, "    movl  %s, (%s)\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->src2));
-
             break;
 
-        case LEA_OC:
+        case LEA_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    leal  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -265,23 +270,20 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
             
             break;
 
-        case MOV_OC:
+        case MOV_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
-
+            temp_reg = allocate_register(NULL);
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
-            
             // Frees temp register
             free_register(temp_reg);
-
             break;
 
         // Arithmetic Operations
-        case ADD_OC:
+        case ADD_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -293,9 +295,9 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
             break;
 
-        case SUB_OC:
+        case SUB_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -307,9 +309,9 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
             break;
 
-        case MUL_OC:
+        case MUL_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -365,9 +367,9 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
 
         // Bitwise Operators
-        case AND_OC:
+        case AND_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -379,9 +381,9 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
             break;
 
-        case OR_OC:
+        case OR_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -393,9 +395,9 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
             break;
 
-        case XOR_OC:
+        case XOR_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -407,9 +409,9 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
             break;
 
-        case SHL_OC:
+        case SHL_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -421,9 +423,9 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
             break;
 
-        case SHR_OC:
+        case SHR_OC:;
             // Gets temp register
-            astnode *temp_reg = allocate_register(NULL);
+            temp_reg = allocate_register(NULL);
 
             // Prints assembly
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
@@ -445,21 +447,21 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
         // Unary Operators
         case NOT_OC:
             // Prints assembly
-            fprintf(out_file, "    notl  %s, %s\n", node_to_assembly(curr_quad->src1));
+            fprintf(out_file, "    notl  %s\n", node_to_assembly(curr_quad->src1));
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->dest));
 
             break;
 
         case NEG_OC:
             // Prints assembly
-            fprintf(out_file, "    negl  %s, %s\n", node_to_assembly(curr_quad->src1));
+            fprintf(out_file, "    negl  %s\n", node_to_assembly(curr_quad->src1));
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->dest));
 
             break;
 
         case COMPL_OC:
             // Prints assembly
-            fprintf(out_file, "    notl  %s, %s\n", node_to_assembly(curr_quad->src1));
+            fprintf(out_file, "    notl  %s\n", node_to_assembly(curr_quad->src1));
             fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->dest));
 
             break;
@@ -471,7 +473,7 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
                 // Sets return value
                 fprintf(out_file, "    movl  %s, %%eax\n", node_to_assembly(curr_quad->src1));
                 // Resets stack frame
-                fprintf(out_file, "    leave\n");
+                fprintf(out_file, "    popl   %%ebp\n");
                 // Returns
                 fprintf(out_file, "    ret\n");
             }
@@ -490,21 +492,27 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
         case CALL_OC:
             // Prints assembly
-            fprintf(out_file, "    call  %s\n", node_to_assembly(curr_quad->src1));
+            fprintf(out_file, "    call  %s\n", curr_quad->src1->ast_fnc_call.function_name->ast_string.string);
 
             // Resets stack pointer
             if(curr_quad->src2->ast_number.number.i_value > 0) {
                 // Default to size of int / pointer
-                fprintf(out_file, "    addl  $%d. %%esp\n", curr_quad->src2->ast_number.number.i_value * 4);
+                fprintf(out_file, "    addl  $%lld, %%esp\n", curr_quad->src2->ast_number.number.i_value * 4);
             }
 
             // Moves to target, if needed
             if(curr_quad->dest != NULL) {
                 fprintf(out_file, "    movl  %%eax %s\n", node_to_assembly(curr_quad->dest));
             } 
+
             break;
 
     }
+
+    // Frees registers used by sources
+    free_register(curr_quad->src1);
+    free_register(curr_quad->src2);
+
 }
 
 // Prints assembly for block jump
@@ -515,38 +523,38 @@ void pick_jump_instruction(FILE *out_file, basic_block *block) {
     switch(block->branch_condition) {
         case EQEQ_OC:
             // Prints assembly
-            fprintf(out_file, "    jne  %s\n", block->branch->block_label);
+            fprintf(out_file, "    jne  %s\n", block->next->block_label);
             break;
 
         case NEQ_OC:
             // Prints assembly
-            fprintf(out_file, "    je  %s\n", block->branch->block_label);
+            fprintf(out_file, "    je  %s\n", block->next->block_label);
             break;
             
         case LT_OC:
             // Prints assembly
-            fprintf(out_file, "    jge  %s\n", block->branch->block_label);
+            fprintf(out_file, "    jge  %s\n", block->next->block_label);
             break;
 
         case GT_OC:
             // Prints assembly
-            fprintf(out_file, "    jle  %s\n", block->branch->block_label);
+            fprintf(out_file, "    jle  %s\n", block->next->block_label);
             break;
             
         case LTEQ_OC:
             // Prints assembly
-            fprintf(out_file, "    jg  %s\n", block->branch->block_label);
+            fprintf(out_file, "    jg  %s\n", block->next->block_label);
             break;
             
         case GTEQ_OC:
             // Prints assembly
-            fprintf(out_file, "    jl  %s\n", block->branch->block_label);
+            fprintf(out_file, "    jl  %s\n", block->next->block_label);
             break;
             
         // Not conditional operator
         default:
             // Prints assembly
-            fprintf(out_file, "    jmp  %s\n", block->branch->block_label);
+            fprintf(out_file, "    jmp  %s\n", block->next->block_label);
             break;
     }
 }
@@ -660,7 +668,7 @@ int get_alignment_of(astnode *node) {
 
         default:
             fprintf(stderr, "ERROR: Cannot determine alignment.\n");
-            return NULL; // Should this kill the program?
+            return 0; // Should this kill the program?
     }
 
     // Returns alignment
@@ -718,41 +726,41 @@ char *node_to_assembly(astnode *node) {
             if(node->ast_number.number.is_signed == SIGNED_TYPE) {
                 switch(node->ast_number.number.size_specifier) {
                     case INT_TYPE:
-                        sprintf(node_name, "%d", (int) node->ast_number.number.i_value);
+                        sprintf(node_name, "$%d", (int) node->ast_number.number.i_value);
                         break;
 
                     case FLOAT_TYPE:
-                        sprintf(node_name, "%f", (float) node->ast_number.number.d_value);
+                        sprintf(node_name, "$%f", (float) node->ast_number.number.d_value);
                         break;
 
                     case DOUBLE_TYPE:
-                        sprintf(node_name, "%f", (double) node->ast_number.number.d_value);
+                        sprintf(node_name, "$%f", (double) node->ast_number.number.d_value);
                         break;
 
                     case LONG_TYPE:
-                        sprintf(node_name, "%ld", (long) node->ast_number.number.i_value);
+                        sprintf(node_name, "$%ld", (long) node->ast_number.number.i_value);
                         break;
 
                     case LONGLONG_TYPE:
-                        sprintf(node_name, "%lld", (long long) node->ast_number.number.i_value);
+                        sprintf(node_name, "$%lld", (long long) node->ast_number.number.i_value);
                         break;
 
                     case LONGDOUBLE_TYPE:
-                        sprintf(node_name, "%Lf",  (long double) node->ast_number.number.d_value);
+                        sprintf(node_name, "$%Lf",  (long double) node->ast_number.number.d_value);
                     
                 }
             } else {
                 switch(node->ast_number.number.size_specifier) {
                     case INT_TYPE:
-                        sprintf(node_name, "%u", (unsigned int) node->ast_number.number.i_value);
+                        sprintf(node_name, "$%u", (unsigned int) node->ast_number.number.i_value);
                         break;
 
                     case LONG_TYPE:
-                        sprintf(node_name, "%lu", (unsigned long) node->ast_number.number.i_value);
+                        sprintf(node_name, "$%lu", (unsigned long) node->ast_number.number.i_value);
                         break;
 
                     case LONGLONG_TYPE:
-                        sprintf(node_name, "%llu", (unsigned long long) node->ast_number.number.i_value);
+                        sprintf(node_name, "$%llu", (unsigned long long) node->ast_number.number.i_value);
                         break;
                 }
             }
@@ -790,7 +798,7 @@ char *get_string_label() {
 // -------------------
 
 // Initializes registers
-void init_register() {
+void init_registers() {
     // Checks for errors
     if((register_status = malloc(sizeof(int) * NUM_REGISTERS)) == NULL) {
         fprintf(stderr, "ERROR: Unable to allocate memory for register array.\n");
@@ -822,7 +830,7 @@ astnode *allocate_register(astnode *node) {
             // Checks if node exists (Assuming temp type)
             if(node == NULL) {
                 // Creates temp node
-                astnode *temp = get_temp_node();
+                node = get_temp_node();
             } 
 
             node->ast_temp_node.curr_register = i;
@@ -836,14 +844,14 @@ astnode *allocate_register(astnode *node) {
 
 // Frees register used by node
 void free_register(astnode *node) {
-    // Checks if no register was used
-    if(node != NULL && 
-      ((node->node_type == TEMP_TYPE && node->ast_temp_node.curr_register != NONE_REGISTER) || 
-       (node->node_type == SYM_ENTRY_TYPE && node->ast_sym_entry.sym_type == VAR_TYPE))) {
+    if(node == NULL) {
         return;
     }
 
-    // Frees register
-    register_status[node->ast_temp_node.curr_register] = 1;
-    node->ast_temp_node.curr_register = NONE_REGISTER;
+    // Checks if register was used
+    if(node->node_type == TEMP_TYPE && node->ast_temp_node.curr_register != NONE_REGISTER) {
+        // Frees register
+        register_status[node->ast_temp_node.curr_register] = 1;
+        node->ast_temp_node.curr_register = NONE_REGISTER;
+    }
 }

@@ -247,6 +247,9 @@ void *emit_quad(int op_code, int op_size, struct astnode *src1, struct astnode *
 
 // Gets r value of expression
 struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
+    if(node == NULL) {
+        return NULL;
+    }
     
     // Checks type of node
     int op_code;
@@ -653,7 +656,7 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
             gen_fnc_call_IR(node, target);
             return target;
     }
-    
+
     return NULL;
 }
 
@@ -662,11 +665,18 @@ struct astnode *get_lvalue(struct astnode *node, int *mode) {
     switch(node->node_type) {
         // Scalar Variable
         case SYM_ENTRY_TYPE:
+            // Scalar type
             if(node->ast_sym_entry.sym_type == VAR_TYPE
                 && node->ast_sym_entry.sym_node->node_type == SCALAR_TYPE) {
                 *mode = DIRECT_MODE;
                 return node;
             }
+            // Pointer type
+            if(node->ast_sym_entry.sym_type == VAR_TYPE && 
+                node->ast_sym_entry.sym_node->node_type == POINTER_TYPE) {
+                *mode = INDIRECT_MODE;
+                return node;
+                }
             break;
 
         // Constants
@@ -1023,6 +1033,7 @@ void gen_while_loop_IR(astnode *node) {
     // Generates quads for loop
     set_block(loop_block);
     generate_quads(node->ast_while_loop.body);
+    link_blocks(NULL, condition_block, NONE_OC);
 
     // Resets break and continue blocks to previous values
     break_block = prev_break_block ? prev_break_block : NULL;
@@ -1145,14 +1156,19 @@ void gen_fnc_call_IR(astnode *node, astnode *target) {
     emit_quad(ARGBEGIN_OC, -1, arg_num_node, NULL, NULL);
 
     // Emits quads for arguments
-    astnode_list_entry *curr_arg = &(node->ast_fnc_call.expr_list_head->ast_node_list_head);
-    for(int i = 1; i <= node->ast_fnc_call.num_arguments; i++) { // Should this be right to left?
+    astnode_list_entry *curr_arg;
+    for(int i = node->ast_fnc_call.num_arguments; i > 0; i--) {
+        // Reverses order of arguments
+        // Not optimal, but works
+        curr_arg = &(node->ast_fnc_call.expr_list_head->ast_node_list_head);
+        for(int j = i; j > 1; j--) {
+            curr_arg = curr_arg->next;
+        }
         emit_quad(ARG_OC, -1, curr_arg->node, NULL, NULL);
-        curr_arg = curr_arg->next;
     }
 
     // Emits quad for function call
-    emit_quad(CALL_OC, -1, node->ast_fnc_call.function_name, arg_num_node, target);
+    emit_quad(CALL_OC, -1, node, arg_num_node, target);
 }
 
 // Printing Functions

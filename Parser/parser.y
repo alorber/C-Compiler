@@ -12,6 +12,7 @@
 #include "symbol_table.h"
 #include "../Lexer/lexerFunctions.h"
 #include "quads.h"
+#include "../Backend/assembly.h"
 
 %}
 
@@ -516,10 +517,12 @@ jump_stmt: GOTO IDENT ';'     {$$ = create_goto_stmt_node($2);}
 /* ----------- */
 
 int main() {
-    //yydebug = 1;   // Set value to 1 to enable debugging
+    yydebug = 1;   // Set value to 1 to enable debugging
     init_scope_stack();  // Creates Scope Stack
     init_quad_gen();
     yyparse();
+    init_registers();
+    gen_assembly("a.S");
     return 0;
 }
 
@@ -543,7 +546,7 @@ void print_ast(astnode *node, int num_indents, int is_struct_union_member) {
         return;
     }
 
-    fprintf(stderr,"PRINTING node type %i\n",node->node_type);
+    /* fprintf(stderr,"PRINTING node type %i\n",node->node_type); */
 
     // Prints indents
     if(node->node_type != NODE_LIST_TYPE) {
