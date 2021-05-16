@@ -8,6 +8,7 @@
 #include "../Parser/symbol_table.h"
 
 extern basic_block_list *block_list;
+extern char filename[256];
 
 // Generates assembly of file
 // Assumes input of output file name
@@ -77,10 +78,18 @@ void gen_function_assembly(FILE *out_file, basic_block *function_block) {
     }
 
     // Generates assembly for quads in function
-    gen_block_assembly(out_file, function_block, 1);
+    basic_block *last_block = gen_block_assembly(out_file, function_block, 1);
 
     // Generates assembly for return
     // Checks if explicit return, if not then 0
+    if(last_block->branch_condition != RETURN_OC) {
+        // Sets return value
+            fprintf(out_file, "    movl  $0, %%eax\n");
+            // Resets stack frame
+            fprintf(out_file, "    popl   %%ebp\n");
+            // Returns
+            fprintf(out_file, "    ret\n");
+    }
 
     // Prints size of function
     fprintf(out_file, "    .size  %s, .-%s\n", function_block->block_label, function_block->block_label);
@@ -244,16 +253,23 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
         astnode *temp_reg;
 
         // Addressing & Assigning
-        case LOAD_OC:
+        case LOAD_OC:;
+            // Gets temp register
+            temp_reg = allocate_register(NULL);
+
             // Prints assembly
-            fprintf(out_file, "    movl  (%s), %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->src1));
-            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->dest));
+            fprintf(out_file, "    movl  (%s), %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
 
             break;
 
-        case STORE_OC:
+        case STORE_OC:;
+            // Gets temp register
+            temp_reg = allocate_register(NULL);
+            
             // Prints assembly
-            fprintf(out_file, "    movl  %s, (%s)\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->src2));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  %s, (%s)\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
             break;
 
         case LEA_OC:;

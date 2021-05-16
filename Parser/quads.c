@@ -1139,6 +1139,7 @@ void gen_continue_stmt_IR() {
 // Generates IR for return
 void gen_return_stmt_IR(astnode *node) {
     emit_quad(RETURN_OC, -1, get_rvalue(node->ast_return.return_expr,NULL), NULL, NULL);
+    link_blocks(NULL, NULL, RETURN_OC);
 }
 
 // Generates IR for function call
