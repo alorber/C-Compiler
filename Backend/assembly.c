@@ -114,6 +114,11 @@ int get_local_scope_size(char *fnc_symbol) {
     // Gets members of OTHER_NAMESPACE
     astnode *sym_entries = get_table_members(sym_table);
 
+    // Checks if no local variables
+    if(sym_entries == NULL) {
+        return 0;
+    }
+
     // Loops through symbol table entries
     astnode_list_entry *curr_sym_entry = &(sym_entries->ast_node_list_head);
     long int total_offset = 0;
@@ -129,11 +134,12 @@ int get_local_scope_size(char *fnc_symbol) {
     //     }
     //     curr_sym_entry = curr_sym_entry->next;
     // }
+    
     // Yes, this takes twice as long
     // But the one above causes a seg fault and for some reason the one below works
     while(curr_sym_entry != NULL) {
         // Checks if variable found
-        if(curr_sym_entry->node->ast_sym_entry.sym_type == VAR_TYPE) {
+        if(curr_sym_entry->node != NULL && curr_sym_entry->node->ast_sym_entry.sym_type == VAR_TYPE) {
             // Calculates the size
             astnode *var_size = get_size_of(curr_sym_entry->node);
 
@@ -147,7 +153,7 @@ int get_local_scope_size(char *fnc_symbol) {
     curr_sym_entry = &(sym_entries->ast_node_list_head);
     while(curr_sym_entry != NULL) {
         // Checks if variable found
-        if(curr_sym_entry->node->ast_sym_entry.sym_type == VAR_TYPE) {
+        if(curr_sym_entry->node != NULL && curr_sym_entry->node->ast_sym_entry.sym_type == VAR_TYPE) {
             // Calculates the size
             astnode *var_size = get_size_of(curr_sym_entry->node);
 
@@ -549,7 +555,7 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
             // Moves to target, if needed
             if(curr_quad->dest != NULL) {
-                fprintf(out_file, "    movl  %%eax %s\n", node_to_assembly(curr_quad->dest));
+                fprintf(out_file, "    movl  %%eax, %s\n", node_to_assembly(curr_quad->dest));
             } 
 
             break;
