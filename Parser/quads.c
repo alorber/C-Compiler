@@ -1156,6 +1156,7 @@ void gen_fnc_call_IR(astnode *node, astnode *target) {
 
     // Emits quads for arguments
     astnode_list_entry *curr_arg;
+    astnode *arg_rvalue;
     for(int i = node->ast_fnc_call.num_arguments; i > 0; i--) {
         // Reverses order of arguments
         // Not optimal, but works
@@ -1163,7 +1164,8 @@ void gen_fnc_call_IR(astnode *node, astnode *target) {
         for(int j = i; j > 1; j--) {
             curr_arg = curr_arg->next;
         }
-        emit_quad(ARG_OC, -1, curr_arg->node, NULL, NULL);
+        arg_rvalue = get_rvalue(curr_arg->node, NULL);
+        emit_quad(ARG_OC, -1, arg_rvalue, NULL, NULL);
     }
 
     // Emits quad for function call
