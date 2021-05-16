@@ -175,7 +175,7 @@ void gen_continue_stmt_IR();
 void gen_return_stmt_IR(astnode *node);
 
 // Generates IR for function call
-void gen_fnc_call_IR(astnode *node);
+void gen_fnc_call_IR(astnode *node, astnode *target);
 
 // Printing Functions
 // ------------------

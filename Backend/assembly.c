@@ -479,11 +479,30 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
             break;
 
         case ARGBEGIN_OC:
+            // Do nothing since number is passed with call?
+            break;
 
         case ARG_OC:
+            // Prints assembly
+            fprintf(out_file, "    pushl  %s\n", node_to_assembly(curr_quad->src1));
+
+            break;
 
         case CALL_OC:
+            // Prints assembly
+            fprintf(out_file, "    call  %s\n", node_to_assembly(curr_quad->src1));
 
+            // Resets stack pointer
+            if(curr_quad->src2->ast_number.number.i_value > 0) {
+                // Default to size of int / pointer
+                fprintf(out_file, "    addl  $%d. %%esp\n", curr_quad->src2->ast_number.number.i_value * 4);
+            }
+
+            // Moves to target, if needed
+            if(curr_quad->dest != NULL) {
+                fprintf(out_file, "    movl  %%eax %s\n", node_to_assembly(curr_quad->dest));
+            } 
+            break;
 
     }
 }

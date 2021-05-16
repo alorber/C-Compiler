@@ -186,7 +186,7 @@ void generate_quads(astnode *node) {
 
         // Function call
         case FUNCTION_CALL_TYPE:
-            gen_fnc_call_IR(node);
+            gen_fnc_call_IR(node, NULL);
             return;
 
         // Compound statement
@@ -642,7 +642,19 @@ struct astnode *get_rvalue(struct astnode *node, struct astnode *target) {
                 emit_quad(op_code, -1, get_rvalue(node->ast_unary_op.expr, NULL), NULL, target);
                 return target;
             }
+            break;
+        
+        case FUNCTION_CALL_TYPE:
+            // Checks if target
+            if(target == NULL) {
+                target = get_temp_node();
+            }
+
+            gen_fnc_call_IR(node, target);
+            return target;
     }
+    
+    return NULL;
 }
 
 // Gets l value of expression
@@ -1121,29 +1133,26 @@ void gen_return_stmt_IR(astnode *node) {
 }
 
 // Generates IR for function call
-void gen_fnc_call_IR(astnode *node) {
+void gen_fnc_call_IR(astnode *node, astnode *target) {
     // Creates number node for argument number
     num_type arg_num;
     arg_num.is_signed = SIGNED;
     arg_num.size_specifier = INT_TYPE;
     arg_num.i_value = node->ast_fnc_call.num_arguments;
+    astnode *arg_num_node = create_number_node(arg_num);
 
+    // Emits quad for argument number
+    emit_quad(ARGBEGIN_OC, -1, arg_num_node, NULL, NULL);
 
-    // Emit quad for argument number
-    emit_quad(ARGBEGIN_OC, -1, create_number_node(arg_num), NULL, NULL);
-
-    // Creates number astnode to pass to quad
-    astnode *arg_number = create_num_one_node();
     // Emits quads for arguments
     astnode_list_entry *curr_arg = &(node->ast_fnc_call.expr_list_head->ast_node_list_head);
     for(int i = 1; i <= node->ast_fnc_call.num_arguments; i++) { // Should this be right to left?
-        arg_number->ast_number.number.i_value = i;
-        emit_quad(ARG_OC, -1, arg_number, curr_arg->node, NULL);
+        emit_quad(ARG_OC, -1, curr_arg->node, NULL, NULL);
         curr_arg = curr_arg->next;
     }
 
     // Emits quad for function call
-    emit_quad(CALL_OC, -1, node->ast_fnc_call.function_name, NULL, NULL);
+    emit_quad(CALL_OC, -1, node->ast_fnc_call.function_name, arg_num_node, target);
 }
 
 // Printing Functions
