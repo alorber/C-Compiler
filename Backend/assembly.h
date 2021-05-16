@@ -11,7 +11,7 @@ void gen_assembly();
 void gen_global_assembly(FILE *out_file);
 
 // Generates assembly for functions
-void gen_function_assembly(FILE *out_file, basic_block *function_block);
+void gen_function_assembly(FILE *out_file, FILE *string_file, basic_block *function_block);
 
 // Gets total size of local variables of function
 int get_local_scope_size(char *fnc_symbol);
@@ -20,10 +20,10 @@ int get_local_scope_size(char *fnc_symbol);
 // Generates assembly for a basic block and all blocks branching from it
 // Returns last basic block printed in chain (used for conditional branching)
 // @Param is_top_level is so function label isn't printed twice
-basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_level);
+basic_block *gen_block_assembly(FILE *out_file, FILE *string_file, basic_block *block, int is_top_level);
 
 // Given a quad, decides the best assembly instruction(s)
-void pick_instruction(FILE *out_file, quad *curr_quad);
+void pick_instruction(FILE *out_file, FILE *string_file, quad *curr_quad);
 
 // Prints assembly for block jump
 void pick_jump_instruction(FILE *out_file, basic_block *block);

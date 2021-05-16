@@ -16,6 +16,11 @@ void gen_assembly(char *out_file_name) {
     // Creates assembly file for output
     FILE *out_file = fopen(out_file_name, "w+");
 
+    // Creates temp file for rodata section
+    // Need to place the strings outside of main for compiler to work
+    FILE *string_file = fopen("rodata_temp.S", "w+");
+    fprintf(string_file, "    .section .rodata\n");
+
     fprintf(out_file, "    .file \"%s\"\n", out_file_name);
 
     // Declares global variables in comm section
@@ -29,10 +34,21 @@ void gen_assembly(char *out_file_name) {
     basic_block_list_entry *curr_function_block = block_list->head;
     while(curr_function_block != NULL) {
         // Generates assembly for function
-        gen_function_assembly(out_file, curr_function_block->bb);
+        gen_function_assembly(out_file, string_file, curr_function_block->bb);
 
         curr_function_block = curr_function_block->next;
     }
+
+    // Prints .rodata section
+    fclose(string_file);
+    string_file = fopen("rodata_temp.S", "r");
+    char c = fgetc(string_file);
+    while(c != EOF) {
+        fputc(c, out_file);
+        c = fgetc(string_file);
+    }
+
+
 }
 
 // Generates assembly for global variables
@@ -61,7 +77,7 @@ void gen_global_assembly(FILE *out_file) {
 }
 
 // Generates assembly for functions
-void gen_function_assembly(FILE *out_file, basic_block *function_block) {
+void gen_function_assembly(FILE *out_file, FILE *string_file, basic_block *function_block) {
     // Prints assembly for function variable
     fprintf(out_file, "    .globl  %s\n", function_block->block_label);
     fprintf(out_file, "    .type   %s, @function\n", function_block->block_label);
@@ -78,7 +94,7 @@ void gen_function_assembly(FILE *out_file, basic_block *function_block) {
     }
 
     // Generates assembly for quads in function
-    basic_block *last_block = gen_block_assembly(out_file, function_block, 1);
+    basic_block *last_block = gen_block_assembly(out_file, string_file, function_block, 1);
 
     // Generates assembly for return
     // Checks if explicit return, if not then 0
@@ -171,7 +187,7 @@ int get_local_scope_size(char *fnc_symbol) {
 // Generates assembly for a basic block and all blocks branching from it
 // Returns last basic block printed in chain (used for conditional branching)
 // @Param is_top_level is so function label isn't printed twice
-basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_level) {
+basic_block *gen_block_assembly(FILE *out_file, FILE *string_file, basic_block *block, int is_top_level) {
     // Checks if block was already printed
     if(block == NULL || block->was_translated) {
         return NULL;
@@ -185,7 +201,7 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_l
     // Picks assembly instruction for quad
     quad_list_entry *curr_quad = block->quad_list;
     while(curr_quad) {
-        pick_instruction(out_file, curr_quad->quad);
+        pick_instruction(out_file, string_file, curr_quad->quad);
         curr_quad = curr_quad->next;
     }
 
@@ -201,18 +217,22 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_l
         pick_jump_instruction(out_file, block);
 
         // Prints true branch
-        basic_block *true_branch_end = gen_block_assembly(out_file, block->branch, 0);
+        basic_block *true_branch_end = gen_block_assembly(out_file, string_file, block->branch, 0);
 
         // If true branch defaults into the false branch (i.e no else statement)
         //    continues with false branch
         if(true_branch_end != NULL && true_branch_end->next == block->next) {
-            return gen_block_assembly(out_file, block->next, 0);
+            return gen_block_assembly(out_file, string_file, block->next, 0);
         } else {
             // Prints false branch
-            basic_block *false_branch_end = gen_block_assembly(out_file, block->next, 0);
+            basic_block *false_branch_end = gen_block_assembly(out_file, string_file, block->next, 0);
 
             // Continues with blocks
-            return gen_block_assembly(out_file, false_branch_end->next, 0);
+            if(false_branch_end->next) {
+                return gen_block_assembly(out_file, string_file, false_branch_end->next, 0);
+            } else {
+                return false_branch_end;
+            }
         }
     }
     // If no next, block return
@@ -233,12 +253,12 @@ basic_block *gen_block_assembly(FILE *out_file, basic_block *block, int is_top_l
     }
     // Otherwise, continue with blocks
     else {
-        return gen_block_assembly(out_file, block->next, 0);
+        return gen_block_assembly(out_file, string_file, block->next, 0);
     }
 }
 
 // Given a quad, decides the best assembly instruction(s)
-void pick_instruction(FILE *out_file, quad *curr_quad) {
+void pick_instruction(FILE *out_file, FILE *string_file, quad *curr_quad) {
     // Checks if destination
     // If yes, reserve register
     if(curr_quad->dest != NULL) {
@@ -247,36 +267,28 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
 
     // Checks if either source is a string
     if(curr_quad->src1 != NULL && curr_quad->src1->node_type == STRING_TYPE) {
-        // Enters rodata section
-        fprintf(out_file, "    .rodata\n");
-
         // Gets label for string
         char *string_label = get_string_label();
 
         // Prints assembly
-        fprintf(out_file, "%s:\n", string_label);
-        fprintf(out_file, "    .string  \"%s\"\n", curr_quad->src1->ast_string.string);
+        fprintf(string_file, "%s:\n", string_label);
+        fprintf(string_file, "    .string  \"%s\"\n", curr_quad->src1->ast_string.string);
 
         // Changes src -> string memory location
         astnode *temp_reg = allocate_register(NULL);
-        fprintf(out_file, ".data\n");
         fprintf(out_file, "    leal  %s, %s\n", string_label, node_to_assembly(temp_reg));
         curr_quad->src1 = temp_reg;
     }
     if(curr_quad->src2 != NULL && curr_quad->src2->node_type == STRING_TYPE) {
-        // Enters rodata section
-        fprintf(out_file, "    .rodata\n");
-
         // Gets label for string
         char *string_label = get_string_label();
 
         // Prints assembly
-        fprintf(out_file, "%s:\n", string_label);
-        fprintf(out_file, "    .string  \"%s\"\n", curr_quad->src2->ast_string.string);
+        fprintf(string_file, "%s:\n", string_label);
+        fprintf(string_file, "    .string  \"%s\"\n", curr_quad->src2->ast_string.string);
 
         // Changes src -> string memory location
         astnode *temp_reg = allocate_register(NULL);
-        fprintf(out_file, ".data\n");
         fprintf(out_file, "    leal  %s, %s\n", string_label, node_to_assembly(temp_reg));
         curr_quad->src2 = temp_reg;
     }
@@ -493,7 +505,7 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
         // Comparison Operators
         case CMP_OC:
             // Prints assembly
-            fprintf(out_file, "    cmpl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(curr_quad->src2));
+            fprintf(out_file, "    cmpl  %s, %s\n", node_to_assembly(curr_quad->src2), node_to_assembly(curr_quad->src1));
 
             break;
 
