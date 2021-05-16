@@ -284,10 +284,14 @@ void pick_instruction(FILE *out_file, quad *curr_quad) {
         case LOAD_OC:;
             // Gets temp register
             temp_reg = allocate_register(NULL);
+            astnode *temp_reg2 = allocate_register(NULL);
 
             // Prints assembly
-            fprintf(out_file, "    movl  (%s), %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
-            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg), node_to_assembly(curr_quad->dest));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(curr_quad->src1), node_to_assembly(temp_reg));
+            fprintf(out_file, "    movl  (%s), %s\n", node_to_assembly(temp_reg), node_to_assembly(temp_reg2));
+            fprintf(out_file, "    movl  %s, %s\n", node_to_assembly(temp_reg2), node_to_assembly(curr_quad->dest));
+
+            free_register(temp_reg2);
 
             break;
 
