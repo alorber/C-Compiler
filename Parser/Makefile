@@ -6,8 +6,8 @@ parser: parser.tab.o assembly.o quads.o symbol_table.o astFunctions.o lexer.yy.o
 
 parser.tab.o: parser.y
 		# For debugging:
-		bison --debug -vd parser.y
-		# bison -vd parser.y
+		# bison --debug -vd parser.y
+		bison -vd parser.y
 		gcc --std=gnu99 -c -o parser.tab.o parser.tab.c
 
 parser.tab.h: parser.tab.o

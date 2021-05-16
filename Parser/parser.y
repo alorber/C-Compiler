@@ -517,7 +517,7 @@ jump_stmt: GOTO IDENT ';'     {$$ = create_goto_stmt_node($2);}
 /* ----------- */
 
 int main() {
-    yydebug = 1;   // Set value to 1 to enable debugging
+    //yydebug = 1;   // Set value to 1 to enable debugging
     init_scope_stack();  // Creates Scope Stack
     init_quad_gen();
     yyparse();
