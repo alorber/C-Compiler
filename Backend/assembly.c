@@ -48,6 +48,8 @@ void gen_assembly(char *out_file_name) {
         c = fgetc(string_file);
     }
 
+    // Deletes temp rodata file
+    remove("rodata_temp.S");
 
 }
 
